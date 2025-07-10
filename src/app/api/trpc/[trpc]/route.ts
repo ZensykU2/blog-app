@@ -15,9 +15,9 @@ const createContext = async (req: NextRequest) => {
   });
 };
 
-const handler = (req: NextRequest) =>{
+const handler = (req: NextRequest) => {
   console.log("Incoming request:", req.method, req.url);
-  fetchRequestHandler({
+  return fetchRequestHandler({
     endpoint: "/api/trpc",
     req,
     router: appRouter,
