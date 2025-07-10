@@ -1,11 +1,24 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
-import type { WebhookEvent } from "@clerk/nextjs/server";
 
 import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
+
+interface ClerkWebhookEvent {
+  type: string;
+  data: {
+    id: string;
+    email_addresses: Array<{
+      email_address: string;
+    }>;
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+    image_url?: string;
+  };
+}
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
 
@@ -27,13 +40,13 @@ export async function POST(req: Request) {
   }
 
   // Get body
-  const payload = await req.json();
+  const payload = await req.json() as unknown;
   const body = JSON.stringify(payload);
 
   // Create new Svix instance with secret
   const wh = new Webhook(webhookSecret);
 
-  let evt: WebhookEvent;
+  let evt: ClerkWebhookEvent;
 
   // Verify payload with headers
   try {
@@ -41,7 +54,7 @@ export async function POST(req: Request) {
       "svix-id": svix_id,
       "svix-timestamp": svix_timestamp,
       "svix-signature": svix_signature,
-    }) as WebhookEvent;
+    }) as ClerkWebhookEvent;
   } catch (err) {
     console.error("Error verifying webhook:", err);
     return new Response("Error occurred", {
@@ -49,14 +62,11 @@ export async function POST(req: Request) {
     });
   }
 
-  const eventType = evt.type;
+  // Handle the webhook
+  const { type, data } = evt;
 
-  if (eventType === "user.created") {
-    const { id, email_addresses, username, first_name, last_name, image_url } = evt.data;
-
-    if (!id) {
-      return new Response("Missing user ID", { status: 400 });
-    }
+  if (type === "user.created") {
+    const { id, email_addresses, username, first_name, last_name, image_url } = data;
 
     try {
       await db.insert(users).values({
@@ -65,7 +75,7 @@ export async function POST(req: Request) {
         email: email_addresses[0]?.email_address ?? "",
         username: username ?? `user_${id.slice(0, 8)}`,
         displayName: first_name && last_name ? `${first_name} ${last_name}` : first_name ?? username ?? "User",
-        profileImage: image_url,
+        profileImage: image_url ?? null,
         role: "user",
         isVerified: false,
         emailVerified: new Date(),
@@ -80,12 +90,8 @@ export async function POST(req: Request) {
     }
   }
 
-  if (eventType === "user.updated") {
-    const { id, email_addresses, username, first_name, last_name, image_url } = evt.data;
-
-    if (!id) {
-      return new Response("Missing user ID", { status: 400 });
-    }
+  if (type === "user.updated") {
+    const { id, email_addresses, username, first_name, last_name, image_url } = data;
 
     try {
       await db.update(users)
@@ -93,7 +99,7 @@ export async function POST(req: Request) {
           email: email_addresses[0]?.email_address ?? "",
           username: username ?? `user_${id.slice(0, 8)}`,
           displayName: first_name && last_name ? `${first_name} ${last_name}` : first_name ?? username ?? "User",
-          profileImage: image_url,
+          profileImage: image_url ?? null,
           updatedAt: new Date(),
         })
         .where(eq(users.clerkId, id));
@@ -105,12 +111,8 @@ export async function POST(req: Request) {
     }
   }
 
-  if (eventType === "user.deleted") {
-    const { id } = evt.data;
-
-    if (!id) {
-      return new Response("Missing user ID", { status: 400 });
-    }
+  if (type === "user.deleted") {
+    const { id } = data;
 
     try {
       await db.delete(users).where(eq(users.clerkId, id));
