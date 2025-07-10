@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
+import type { WebhookEvent } from "@clerk/nextjs/server";
 
 import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
@@ -13,6 +14,7 @@ export async function POST(req: Request) {
     throw new Error("Missing CLERK_WEBHOOK_SECRET");
   }
 
+  // Get headers
   const headerPayload = await headers();
   const svix_id = headerPayload.get("svix-id");
   const svix_timestamp = headerPayload.get("svix-timestamp");
@@ -24,19 +26,22 @@ export async function POST(req: Request) {
     });
   }
 
+  // Get body
   const payload = await req.json();
   const body = JSON.stringify(payload);
 
+  // Create new Svix instance with secret
   const wh = new Webhook(webhookSecret);
 
-  let evt;
+  let evt: WebhookEvent;
 
+  // Verify payload with headers
   try {
     evt = wh.verify(body, {
       "svix-id": svix_id,
       "svix-timestamp": svix_timestamp,
       "svix-signature": svix_signature,
-    }) as any;
+    }) as WebhookEvent;
   } catch (err) {
     console.error("Error verifying webhook:", err);
     return new Response("Error occurred", {
@@ -44,11 +49,14 @@ export async function POST(req: Request) {
     });
   }
 
-  // Handle the webhook
   const eventType = evt.type;
 
   if (eventType === "user.created") {
     const { id, email_addresses, username, first_name, last_name, image_url } = evt.data;
+
+    if (!id) {
+      return new Response("Missing user ID", { status: 400 });
+    }
 
     try {
       await db.insert(users).values({
@@ -75,6 +83,10 @@ export async function POST(req: Request) {
   if (eventType === "user.updated") {
     const { id, email_addresses, username, first_name, last_name, image_url } = evt.data;
 
+    if (!id) {
+      return new Response("Missing user ID", { status: 400 });
+    }
+
     try {
       await db.update(users)
         .set({
@@ -95,6 +107,10 @@ export async function POST(req: Request) {
 
   if (eventType === "user.deleted") {
     const { id } = evt.data;
+
+    if (!id) {
+      return new Response("Missing user ID", { status: 400 });
+    }
 
     try {
       await db.delete(users).where(eq(users.clerkId, id));

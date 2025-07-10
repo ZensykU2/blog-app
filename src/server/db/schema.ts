@@ -3,16 +3,10 @@
 
 import { relations, sql } from "drizzle-orm";
 import {
-  boolean,
   index,
-  integer,
   pgEnum,
   pgTableCreator,
   primaryKey,
-  serial,
-  text,
-  timestamp,
-  varchar,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
@@ -70,7 +64,7 @@ export const users = createTable(
 export const userSocialLinks = createTable("user_social_link", (d) => ({
   id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
   userId: d.varchar({ length: 255 }).notNull(),
-  platform: d.varchar({ length: 50 }).notNull(), // twitter, linkedin, github, etc.
+  platform: d.varchar({ length: 50 }).notNull(), 
   url: d.text().notNull(),
   createdAt: d
     .timestamp({ withTimezone: true })
