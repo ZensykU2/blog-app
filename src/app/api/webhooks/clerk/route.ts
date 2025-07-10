@@ -27,7 +27,6 @@ export async function POST(req: Request) {
     throw new Error("Missing CLERK_WEBHOOK_SECRET");
   }
 
-  // Get headers
   const headerPayload = await headers();
   const svix_id = headerPayload.get("svix-id");
   const svix_timestamp = headerPayload.get("svix-timestamp");
@@ -39,16 +38,13 @@ export async function POST(req: Request) {
     });
   }
 
-  // Get body
   const payload = await req.json() as unknown;
   const body = JSON.stringify(payload);
 
-  // Create new Svix instance with secret
   const wh = new Webhook(webhookSecret);
 
   let evt: ClerkWebhookEvent;
 
-  // Verify payload with headers
   try {
     evt = wh.verify(body, {
       "svix-id": svix_id,
@@ -62,7 +58,6 @@ export async function POST(req: Request) {
     });
   }
 
-  // Handle the webhook
   const { type, data } = evt;
 
   if (type === "user.created") {
