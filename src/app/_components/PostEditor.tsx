@@ -7,64 +7,41 @@ import Link from "next/link";
 
 import { api } from "~/trpc/react";
 
-interface PostEditFormProps {
-  post: {
-    id: number;
-    title: string;
-    content: string;
-    status: string;
-    authorId: string;
-    createdAt: Date;
-    updatedAt: Date | null;
-    author: {
-      id: string | null;
-      displayName: string | null;
-      username: string | null;
-      profileImage: string | null;
-    } | null;
-  };
-}
-
-export function PostEditForm({ post }: PostEditFormProps) {
+export function PostEditor() {
   const router = useRouter();
-  const [title, setTitle] = useState(post.title);
-  const [content, setContent] = useState(post.content);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
 
-  const updatePost = api.post.update.useMutation({
+  const createPost = api.post.create.useMutation({
     onSuccess: () => {
-      router.push(`/post/${post.id}`);
+      router.push("/");
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim() && content.trim()) {
-      updatePost.mutate({
-        id: post.id,
-        title: title.trim(),
-        content: content.trim(),
-      });
+      createPost.mutate({ title, content });
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <Link href={`/post/${post.id}`}>
+        <Link href="/">
           <button className="flex items-center gap-2 text-white/70 hover:text-white transition">
             <ArrowLeft size={20} />
-            Back to Post
+            Back to Feed
           </button>
         </Link>
-
+        
         <button
           onClick={handleSubmit}
-          disabled={updatePost.isPending || !title.trim() || !content.trim()}
-          className="flex items-center gap-2 rounded-full bg-purple-600 px-6 py-3 font-semibold text-white hover:bg-purple-700 transition disabled:opacity-50"
+          disabled={createPost.isPending || !title.trim() || !content.trim()}
+          className="flex items-center gap-2 rounded-full bg-purple-600 px-6 py-3 font-semibold hover:bg-purple-700 transition disabled:opacity-50"
         >
           <Save size={20} />
-          {updatePost.isPending ? "Updating..." : "Update Post"}
+          {createPost.isPending ? "Publishing..." : "Publish"}
         </button>
       </div>
 
