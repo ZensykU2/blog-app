@@ -2,7 +2,7 @@ import { z } from "zod";
 import { desc, eq, and } from "drizzle-orm";
 
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
-import { posts } from "~/server/db/schema";
+import { posts, users } from "~/server/db/schema";
 
 export const postRouter = createTRPCRouter({
   hello: publicProcedure
@@ -12,7 +12,6 @@ export const postRouter = createTRPCRouter({
         greeting: `Hello ${input.text}`,
       };
     }),
-
   getAll: publicProcedure
     .input(z.object({
       page: z.number().default(1),
@@ -22,8 +21,26 @@ export const postRouter = createTRPCRouter({
       const offset = (input.page - 1) * input.limit;
       
       const allPosts = await ctx.db
-        .select()
+        .select({
+          id: posts.id,
+          title: posts.title,
+          slug: posts.slug,
+          content: posts.content,
+          excerpt: posts.excerpt,
+          status: posts.status,
+          authorId: posts.authorId,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt,
+          publishedAt: posts.publishedAt,
+          author: {
+            id: users.id,
+            displayName: users.displayName,
+            username: users.username,
+            profileImage: users.profileImage,
+          },
+        })
         .from(posts)
+        .leftJoin(users, eq(posts.authorId, users.clerkId))
         .where(eq(posts.status, "published"))
         .orderBy(desc(posts.createdAt))
         .limit(input.limit)
@@ -40,7 +57,6 @@ export const postRouter = createTRPCRouter({
         hasMore: totalCount.length > offset + input.limit,
       };
     }),
-
   getByUser: protectedProcedure
     .input(z.object({
       userId: z.string().optional(),
@@ -52,8 +68,26 @@ export const postRouter = createTRPCRouter({
       const offset = (input.page - 1) * input.limit;
       
       const userPosts = await ctx.db
-        .select()
+        .select({
+          id: posts.id,
+          title: posts.title,
+          slug: posts.slug,
+          content: posts.content,
+          excerpt: posts.excerpt,
+          status: posts.status,
+          authorId: posts.authorId,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt,
+          publishedAt: posts.publishedAt,
+          author: {
+            id: users.id,
+            displayName: users.displayName,
+            username: users.username,
+            profileImage: users.profileImage,
+          },
+        })
         .from(posts)
+        .leftJoin(users, eq(posts.authorId, users.clerkId))
         .where(eq(posts.authorId, userId))
         .orderBy(desc(posts.createdAt))
         .limit(input.limit)
@@ -75,8 +109,27 @@ export const postRouter = createTRPCRouter({
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
       const post = await ctx.db
-        .select()
+        .select({
+          id: posts.id,
+          title: posts.title,
+          slug: posts.slug,
+          content: posts.content,
+          excerpt: posts.excerpt,
+          status: posts.status,
+          authorId: posts.authorId,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt,
+          publishedAt: posts.publishedAt,
+          // Author-Daten
+          author: {
+            id: users.id,
+            displayName: users.displayName,
+            username: users.username,
+            profileImage: users.profileImage,
+          },
+        })
         .from(posts)
+        .leftJoin(users, eq(posts.authorId, users.clerkId))
         .where(eq(posts.id, input.id))
         .limit(1);
 
@@ -94,26 +147,26 @@ export const postRouter = createTRPCRouter({
         ));
     }),
 
-    update: protectedProcedure
-  .input(z.object({
-    id: z.number(),
-    title: z.string().min(1),
-    content: z.string().min(1),
-  }))
-  .mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .update(posts)
-      .set({
-        title: input.title,
-        content: input.content,
-        slug: input.title.toLowerCase().replace(/\s+/g, '-'),
-        updatedAt: new Date(),
-      })
-      .where(and(
-        eq(posts.id, input.id),
-        eq(posts.authorId, ctx.auth.userId)
-      ));
-  }),
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      title: z.string().min(1),
+      content: z.string().min(1),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(posts)
+        .set({
+          title: input.title,
+          content: input.content,
+          slug: input.title.toLowerCase().replace(/\s+/g, '-'),
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(posts.id, input.id),
+          eq(posts.authorId, ctx.auth.userId)
+        ));
+    }),
 
   create: protectedProcedure
     .input(z.object({ 
@@ -133,7 +186,27 @@ export const postRouter = createTRPCRouter({
     }),
 
   getLatest: publicProcedure.query(async ({ ctx }) => {
-    const post = await ctx.db.select().from(posts)
+    const post = await ctx.db
+      .select({
+        id: posts.id,
+        title: posts.title,
+        slug: posts.slug,
+        content: posts.content,
+        excerpt: posts.excerpt,
+        status: posts.status,
+        authorId: posts.authorId,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+        publishedAt: posts.publishedAt,
+        author: {
+          id: users.id,
+          displayName: users.displayName,
+          username: users.username,
+          profileImage: users.profileImage,
+        },
+      })
+      .from(posts)
+      .leftJoin(users, eq(posts.authorId, users.clerkId))
       .where(eq(posts.status, "published"))
       .orderBy(desc(posts.createdAt))
       .limit(1);

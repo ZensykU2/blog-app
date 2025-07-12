@@ -6,10 +6,23 @@ import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 
 import { api } from "~/trpc/react";
-import type { Post } from "~/server/db/schema";
 
 interface PostEditFormProps {
-  post: Post;
+  post: {
+    id: number;
+    title: string;
+    content: string;
+    status: string;
+    authorId: string;
+    createdAt: Date;
+    updatedAt: Date | null;
+    author: {
+      id: string | null;
+      displayName: string | null;
+      username: string | null;
+      profileImage: string | null;
+    } | null;
+  };
 }
 
 export function PostEditForm({ post }: PostEditFormProps) {
@@ -44,7 +57,7 @@ export function PostEditForm({ post }: PostEditFormProps) {
             Back to Post
           </button>
         </Link>
-        
+
         <button
           onClick={handleSubmit}
           disabled={updatePost.isPending || !title.trim() || !content.trim()}

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ArrowLeft, Edit2 } from "lucide-react";
+import { ArrowLeft, Edit2, User } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 
@@ -26,6 +26,13 @@ export default async function PostPage({ params }: PostPageProps) {
   }
 
   const isOwner = userId === post.authorId;
+
+  const getAuthorName = () => {
+    if (!post.author) return "Unknown Author";
+    if (post.author.displayName) return post.author.displayName;
+    if (post.author.username) return `@${post.author.username}`;
+    return "Unknown Author";
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
@@ -57,12 +64,30 @@ export default async function PostPage({ params }: PostPageProps) {
 
         <article className="max-w-4xl mx-auto">
           <header className="mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              {post.author?.profileImage ? (
+                <img 
+                  src={post.author.profileImage} 
+                  alt={getAuthorName()}
+                  className="w-10 h-10 rounded-full"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                  <User size={20} className="text-white/60" />
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium text-white">
+                  {getAuthorName()}
+                </p>
+                <p className="text-xs text-white/60">
+                  {post.createdAt.toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+
             <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
             <div className="flex items-center gap-4 text-white/60">
-              <span>{post.createdAt.toLocaleDateString()}</span>
-              <span className="px-2 py-1 bg-green-600/20 text-green-400 rounded text-sm">
-                {post.status}
-              </span>
               {post.updatedAt && post.updatedAt > post.createdAt && (
                 <span className="text-sm">
                   Updated: {post.updatedAt.toLocaleDateString()}
