@@ -23,10 +23,17 @@ export function PostGrid({ userId, showAllPosts = false }: PostGridProps) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="rounded-lg bg-white/10 p-6 animate-pulse">
-            <div className="h-6 bg-white/20 rounded mb-2"></div>
-            <div className="h-4 bg-white/20 rounded mb-4"></div>
-            <div className="h-3 bg-white/20 rounded"></div>
+          <div key={i} className="glass-panel h-[320px] rounded-xl p-6 animate-pulse">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-8 w-8 bg-white/10 rounded-full"></div>
+              <div className="h-4 w-24 bg-white/10 rounded"></div>
+            </div>
+            <div className="h-8 bg-white/10 rounded mb-4"></div>
+            <div className="h-4 bg-white/10 rounded mb-2"></div>
+            <div className="h-4 bg-white/10 rounded mb-2 w-2/3"></div>
+            <div className="mt-auto pt-6 border-t border-white/5 flex justify-between">
+              <div className="h-6 w-16 bg-white/10 rounded"></div>
+            </div>
           </div>
         ))}
       </div>
@@ -35,15 +42,19 @@ export function PostGrid({ userId, showAllPosts = false }: PostGridProps) {
 
   if (!data?.posts.length) {
     return (
-      <div className="text-center py-12">
-        <p className="text-white/70 text-lg">No posts found.</p>
+      <div className="text-center py-20 animate-fade-in">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/5 mb-4">
+          <div className="w-8 h-8 rounded-sm bg-white/20"></div>
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">No posts found</h3>
+        <p className="text-slate-400">Be the first to share a story!</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+    <div className="animate-fade-in">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
         {data.posts.map((post) => (
           <PostCard key={post.id} post={post} onDelete={() => refetch()} />
         ))}
@@ -54,20 +65,20 @@ export function PostGrid({ userId, showAllPosts = false }: PostGridProps) {
           <button
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition disabled:opacity-50"
+            className="glass-button flex items-center gap-2 px-6 py-3 rounded-full text-slate-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/10"
           >
             <ChevronLeft size={16} />
             Previous
           </button>
-          
-          <span className="text-white/70">
+
+          <span className="text-slate-400 font-medium">
             Page {currentPage} of {Math.ceil(data.totalCount / limit)}
           </span>
-          
+
           <button
             onClick={() => setCurrentPage(prev => prev + 1)}
             disabled={!data.hasMore}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition disabled:opacity-50"
+            className="glass-button flex items-center gap-2 px-6 py-3 rounded-full text-slate-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/10"
           >
             Next
             <ChevronRight size={16} />

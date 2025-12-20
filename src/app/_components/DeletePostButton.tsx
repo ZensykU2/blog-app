@@ -7,9 +7,10 @@ import { api } from "~/trpc/react";
 
 interface DeletePostButtonProps {
   postId: number;
+  className?: string;
 }
 
-export function DeletePostButton({ postId }: DeletePostButtonProps) {
+export function DeletePostButton({ postId, className }: DeletePostButtonProps) {
   const router = useRouter();
   const utils = api.useUtils();
 
@@ -30,10 +31,10 @@ export function DeletePostButton({ postId }: DeletePostButtonProps) {
     <button
       onClick={handleDelete}
       disabled={deletePost.isPending}
-      className="flex items-center gap-2 w-full"
+      className={className ?? "flex items-center gap-2 w-full cursor-pointer hover:bg-red-500/10 p-2 rounded transition-colors"}
     >
-      <Trash2 size={16} className="text-red-300" />
-      <span className="text-red-300">
+      <Trash2 size={16} className={className ? "text-red-400" : "text-red-300"} />
+      <span className={className ? "text-red-400" : "text-red-300"}>
         {deletePost.isPending ? "Deleting..." : "Delete"}
       </span>
     </button>

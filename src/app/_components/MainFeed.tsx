@@ -5,33 +5,26 @@ import { PostGrid } from "./PostGrid";
 
 export function MainFeed() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-      <div className="container mx-auto px-4 py-8">
-
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-4xl font-bold">
-            Your <span className="text-[hsl(280,100%,70%)]">Feed</span>
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-10">
+        <div>
+          <h1 className="text-4xl font-black tracking-tight text-white mb-2">
+            Your <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">Feed</span>
           </h1>
-          
-          <div className="flex items-center gap-4">
-            <Link href="/my-posts">
-              <button className="flex items-center gap-2 rounded-full bg-white/10 px-6 py-3 font-semibold hover:bg-white/20 transition">
-                <FileText size={20} />
-                My Posts
-              </button>
-            </Link>
-            
-            <Link href="/create">
-              <button className="flex items-center gap-2 rounded-full bg-purple-600 px-6 py-3 font-semibold hover:bg-purple-700 transition">
-                <Plus size={20} />
-                New Post
-              </button>
-            </Link>
-          </div>
+          <p className="text-slate-400">Discover the latest stories from the community</p>
         </div>
 
-        <PostGrid showAllPosts={true} />
+        <div className="flex items-center gap-4">
+          <Link href="/create">
+            <button className="flex items-center gap-2 rounded-full bg-white text-slate-900 px-6 py-3 font-bold hover:bg-slate-200 transition-all shadow-lg hover:shadow-white/20 hover:-translate-y-0.5">
+              <Plus size={20} />
+              New Post
+            </button>
+          </Link>
+        </div>
       </div>
-    </main>
+
+      <PostGrid showAllPosts={true} />
+    </div>
   );
 }

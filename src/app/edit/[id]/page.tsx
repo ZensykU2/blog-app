@@ -11,7 +11,7 @@ interface EditPostPageProps {
 export default async function EditPostPage({ params }: EditPostPageProps) {
   const { id } = await params;
   const { userId } = await auth();
-  
+
   if (!userId) {
     redirect("/");
   }
@@ -22,7 +22,7 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
   }
 
   const post = await api.post.getById({ id: postId });
-  
+
   if (!post) {
     notFound();
   }
@@ -32,10 +32,8 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-      <div className="container mx-auto px-4 py-8">
-        <PostEditForm post={post} />
-      </div>
+    <main className="container mx-auto px-4 py-8 animate-slide-up">
+      <PostEditForm post={post} />
     </main>
   );
 }
