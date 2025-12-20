@@ -4,6 +4,7 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ClerkProvider, SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
+import { Toaster } from "react-hot-toast";
 
 import { TRPCReactProvider } from "~/trpc/react";
 
@@ -40,6 +41,14 @@ export default function RootLayout({
       <html lang="en" className={`${geist.variable}`}>
         <body>
           <TRPCReactProvider>
+            <Toaster position="bottom-right" toastOptions={{
+              style: {
+                background: '#1e293b',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(10px)',
+              }
+            }} />
             <header className="sticky top-0 z-50 border-b border-white/5 bg-[#0f172a]/80 backdrop-blur-xl supports-[backdrop-filter]:bg-[#0f172a]/60">
               <div className="container mx-auto flex items-center justify-between px-4 py-4">
                 <Link href="/" className="group flex items-center gap-2 transition-transform hover:scale-105">

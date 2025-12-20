@@ -1,7 +1,8 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 
 import { api } from "~/trpc/server";
+import { decodeId } from "~/lib/ids";
 import { PostEditForm } from "../../_components/PostEditForm";
 
 interface EditPostPageProps {
@@ -16,15 +17,16 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
     redirect("/");
   }
 
-  const postId = parseInt(id);
-  if (isNaN(postId)) {
-    notFound();
+  const postId = decodeId(id);
+
+  if (postId === null) {
+    redirect("/");
   }
 
   const post = await api.post.getById({ id: postId });
 
   if (!post) {
-    notFound();
+    redirect("/");
   }
 
   if (post.authorId !== userId) {

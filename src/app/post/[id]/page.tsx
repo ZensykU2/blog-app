@@ -1,10 +1,13 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { ArrowLeft, Edit2, User } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 
 import { api } from "~/trpc/server";
+import { decodeId, encodeId } from "~/lib/ids";
 import { DeletePostButton } from "../../_components/DeletePostButton";
+import { CommentList } from "../../_components/comments/CommentList";
+import { PostInteractions } from "../../_components/PostInteractions";
 
 interface PostPageProps {
   params: Promise<{ id: string }>;
@@ -16,15 +19,16 @@ export default async function PostPage({ params }: PostPageProps) {
   const { id } = await params;
   const { userId } = await auth();
 
-  const postId = parseInt(id);
-  if (isNaN(postId)) {
-    notFound();
+  const postId = decodeId(id);
+
+  if (postId === null) {
+    redirect("/");
   }
 
   const post = await api.post.getById({ id: postId });
 
   if (!post) {
-    notFound();
+    redirect("/");
   }
 
   const isOwner = userId === post.authorId;
@@ -83,7 +87,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
             {isOwner && (
               <div className="flex items-center gap-3">
-                <Link href={`/edit/${post.id}`}>
+                <Link href={`/edit/${encodeId(post.id)}`}>
                   <button className="flex items-center gap-2 rounded-full bg-white/5 hover:bg-white/10 px-4 py-2 text-sm font-medium transition-all hover:scale-105 cursor-pointer border border-white/5 text-purple-300">
                     <Edit2 size={16} />
                     Edit
@@ -106,10 +110,19 @@ export default async function PostPage({ params }: PostPageProps) {
         </header>
 
         <div className="prose prose-invert prose-lg max-w-none prose-headings:font-bold prose-a:text-purple-400 hover:prose-a:text-purple-300 prose-strong:text-white prose-code:text-purple-300 prose-pre:bg-slate-900/50 prose-pre:border prose-pre:border-white/10 relative z-10">
-          <div className="leading-relaxed whitespace-pre-wrap font-sans text-slate-300">
+          <div className="leading-relaxed whitespace-pre-wrap font-sans text-slate-300 mb-12">
             {post.content}
           </div>
         </div>
+
+        <PostInteractions
+          postId={post.id}
+          initialLikes={(post as any).likeCount ?? 0}
+          isLiked={(post as any).isLiked ?? false}
+          isBookmarked={(post as any).isBookmarked ?? false}
+        />
+
+        <CommentList postId={post.id} postAuthorId={post.authorId} />
       </article>
     </main>
   );

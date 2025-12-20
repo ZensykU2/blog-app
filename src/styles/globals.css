@@ -75,3 +75,36 @@ body {
     radial-gradient(circle at 85% 30%, rgba(124, 58, 237, 0.2), transparent 25%);
   background-attachment: fixed;
 }
+
+/* ============ CUSTOM SCROLLBAR ============ */
+@layer base {
+
+  /* Chrome, Edge, and Safari */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0f172a;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(168, 85, 247, 0.4);
+    /* purple-500/40 */
+    border: 1px solid rgba(168, 85, 247, 0.2);
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) #0f172a;
+  }
+}

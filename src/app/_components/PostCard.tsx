@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { Edit2, Trash2, User } from "lucide-react";
+import { Edit2, Trash2, User, Heart, Bookmark } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 import { api } from "~/trpc/react";
+import { getQueryKey } from "@trpc/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { encodeId } from "~/lib/ids";
 
 interface PostCardProps {
   post: {
@@ -22,6 +27,9 @@ interface PostCardProps {
       username: string | null;
       profileImage: string | null;
     } | null;
+    likeCount?: number;
+    isLiked?: boolean;
+    isBookmarked?: boolean;
   };
   onDelete?: () => void;
 }
@@ -30,6 +38,8 @@ import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 
 export function PostCard({ post, onDelete, hideStatus = false }: PostCardProps & { hideStatus?: boolean }) {
   const { user } = useUser();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [isHovered, setIsHovered] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const utils = api.useUtils();
@@ -40,6 +50,109 @@ export function PostCard({ post, onDelete, hideStatus = false }: PostCardProps &
       onDelete?.();
       setIsModalOpen(false);
     },
+  });
+
+  const [likes, setLikes] = useState(post.likeCount ?? 0);
+  const [isLiked, setIsLiked] = useState(post.isLiked ?? false);
+  const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked ?? false);
+
+  useEffect(() => {
+    setLikes(post.likeCount ?? 0);
+    setIsLiked(post.isLiked ?? false);
+    setIsBookmarked(post.isBookmarked ?? false);
+  }, [post.likeCount, post.isLiked, post.isBookmarked]);
+
+  const toggleLike = api.interaction.togglePostLike.useMutation({
+    onMutate: async () => {
+      if (!user) {
+        toast.error("Please sign in to like posts");
+        return;
+      }
+      const newIsLiked = !isLiked;
+      const newLikes = newIsLiked ? likes + 1 : likes - 1;
+
+      setIsLiked(newIsLiked);
+      setLikes(newLikes);
+
+      // Also update the individual post cache if it exists
+      await utils.post.getById.cancel({ id: post.id });
+      const previousPostById = utils.post.getById.getData({ id: post.id });
+
+      utils.post.getById.setData({ id: post.id }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          likeCount: newLikes,
+          isLiked: newIsLiked,
+        };
+      });
+
+      // Update ALL feed queries
+      const feedKey = getQueryKey(api.post.getAll, undefined, "query");
+      queryClient.setQueriesData({ queryKey: feedKey }, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          posts: old.posts.map((p: any) => p.id === post.id ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p)
+        };
+      });
+
+      return { previousPostById };
+    },
+    onSuccess: async () => {
+      void utils.post.invalidate();
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPostById) {
+        utils.post.getById.setData({ id: post.id }, context.previousPostById);
+      }
+      setIsLiked(post.isLiked ?? false);
+      setLikes(post.likeCount ?? 0);
+    }
+  });
+
+  const toggleBookmark = api.interaction.togglePostBookmark.useMutation({
+    onMutate: async () => {
+      if (!user) {
+        toast.error("Please sign in to save posts");
+        return;
+      }
+      const newIsBookmarked = !isBookmarked;
+      setIsBookmarked(newIsBookmarked);
+
+      await utils.post.getById.cancel({ id: post.id });
+      const previousPostById = utils.post.getById.getData({ id: post.id });
+
+      utils.post.getById.setData({ id: post.id }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          isBookmarked: newIsBookmarked,
+        };
+      });
+
+      // Update ALL feed queries
+      const feedKey = getQueryKey(api.post.getAll, undefined, "query");
+      queryClient.setQueriesData({ queryKey: feedKey }, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          posts: old.posts.map((p: any) => p.id === post.id ? { ...p, isBookmarked: newIsBookmarked } : p)
+        };
+      });
+
+      return { previousPostById };
+    },
+    onSuccess: async (data) => {
+      toast.success(data.bookmarked ? "Post saved to bookmarks" : "Removed from bookmarks");
+      void utils.post.invalidate();
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPostById) {
+        utils.post.getById.setData({ id: post.id }, context.previousPostById);
+      }
+      setIsBookmarked(post.isBookmarked ?? false);
+    }
   });
 
   const isOwner = user?.id === post.authorId;
@@ -82,7 +195,7 @@ export function PostCard({ post, onDelete, hideStatus = false }: PostCardProps &
           </div>
         )}
 
-        <Link href={`/post/${post.id}`} className="flex flex-col h-full relative z-10">
+        <Link href={`/post/${encodeId(post.id)}`} className="flex flex-col h-full relative z-10">
           <div className="flex items-center gap-3 mb-4">
             <div className="relative">
               {post.author?.profileImage ? (
@@ -121,15 +234,32 @@ export function PostCard({ post, onDelete, hideStatus = false }: PostCardProps &
           </div>
 
           <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
-            {!hideStatus && (
-              <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${post.status === 'published'
-                ? 'bg-green-500/10 border-green-500/20 text-green-400'
-                : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
-                }`}>
-                {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
-              </span>
-            )}
-            {hideStatus && <span></span>} {/* Spacer if status hidden */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!user) return toast.error("Please sign in to like posts");
+                  toggleLike.mutate({ postId: post.id });
+                }}
+                className={`flex items-center gap-1.5 transition-colors hover:text-pink-400 ${isLiked ? "text-pink-500" : "text-slate-400"}`}
+              >
+                <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
+                <span className="text-xs font-bold">{likes}</span>
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!user) return toast.error("Please sign in to save posts");
+                  toggleBookmark.mutate({ postId: post.id });
+                }}
+                className={`flex items-center transition-colors hover:text-yellow-400 ${isBookmarked ? "text-yellow-500" : "text-slate-400"}`}
+              >
+                <Bookmark size={16} fill={isBookmarked ? "currentColor" : "none"} />
+              </button>
+            </div>
 
             <span className="text-xs text-purple-400 font-medium group-hover:translate-x-1 transition-transform">
               Read blog →
