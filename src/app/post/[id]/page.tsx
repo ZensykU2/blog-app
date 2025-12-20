@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { ArrowLeft, Edit2, User } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 
 import { api } from "~/trpc/server";
@@ -31,6 +32,13 @@ export default async function PostPage({ params }: PostPageProps) {
     redirect("/");
   }
 
+  // Type assertion for additional fields returned by the router
+  const postWithInteractions = post as typeof post & {
+    likeCount: number;
+    isLiked: boolean;
+    isBookmarked: boolean;
+  };
+
   const isOwner = userId === post.authorId;
 
   const getAuthorName = () => {
@@ -59,10 +67,12 @@ export default async function PostPage({ params }: PostPageProps) {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               {post.author?.profileImage ? (
-                <img
+                <Image
                   src={post.author.profileImage}
                   alt={getAuthorName()}
-                  className="w-10 h-10 rounded-full ring-2 ring-white/10"
+                  width={40}
+                  height={40}
+                  className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
                 />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-white/5 ring-2 ring-white/10 flex items-center justify-center">
@@ -117,9 +127,9 @@ export default async function PostPage({ params }: PostPageProps) {
 
         <PostInteractions
           postId={post.id}
-          initialLikes={(post as any).likeCount ?? 0}
-          isLiked={(post as any).isLiked ?? false}
-          isBookmarked={(post as any).isBookmarked ?? false}
+          initialLikes={postWithInteractions.likeCount}
+          isLiked={postWithInteractions.isLiked}
+          isBookmarked={postWithInteractions.isBookmarked}
         />
 
         <CommentList postId={post.id} postAuthorId={post.authorId} />

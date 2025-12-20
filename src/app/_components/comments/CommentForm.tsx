@@ -5,6 +5,7 @@ import { Send } from "lucide-react";
 import { api } from "~/trpc/react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 
 import TextareaAutosize from "react-textarea-autosize";
 
@@ -82,10 +83,12 @@ export function CommentForm({
         <div className={`glass-panel p-6 rounded-xl ${isUpdate ? "mt-4" : "mb-8"}`}>
             <div className="flex gap-4">
                 {!isUpdate && user?.imageUrl && (
-                    <img
+                    <Image
                         src={user.imageUrl}
                         alt={user.fullName || "User"}
-                        className="w-10 h-10 rounded-full ring-2 ring-white/10"
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
                     />
                 )}
                 <form onSubmit={handleSubmit} className="flex-1">

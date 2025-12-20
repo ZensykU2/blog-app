@@ -2,7 +2,7 @@ import "~/styles/globals.css";
 import { dark } from "@clerk/themes";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
-import { ClerkProvider, SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { ClerkProvider, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { Toaster } from "react-hot-toast";
 

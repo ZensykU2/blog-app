@@ -4,7 +4,7 @@ import { desc, eq, and, count } from "drizzle-orm";
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { posts, users, postLikes, postBookmarks } from "~/server/db/schema";
 import { getClerkUser } from "~/lib/clerk-user";
-import { sql } from "drizzle-orm";
+
 
 export const postRouter = createTRPCRouter({
   getAll: publicProcedure

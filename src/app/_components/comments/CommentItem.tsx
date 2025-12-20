@@ -3,6 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { Trash2, User as UserIcon, Edit3, ChevronDown, ChevronUp, Heart } from "lucide-react";
 import { useState } from "react";
+import Image from "next/image";
 import { api } from "~/trpc/react";
 import { CommentForm } from "./CommentForm";
 import { DeleteConfirmationModal } from "../DeleteConfirmationModal";
@@ -110,10 +111,12 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
             <div className="flex gap-4">
                 <div className="flex-shrink-0">
                     {comment.author?.profileImage ? (
-                        <img
+                        <Image
                             src={comment.author.profileImage}
                             alt={getAuthorName()}
-                            className="w-10 h-10 rounded-full ring-2 ring-white/10"
+                            width={40}
+                            height={40}
+                            className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
                         />
                     ) : (
                         <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-white/10">

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { Edit2, Trash2, User, Heart, Bookmark } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
@@ -178,7 +179,7 @@ export function PostCard({ post, onDelete, hideStatus = false }: PostCardProps &
 
         {isOwner && isHovered && (
           <div className="absolute top-4 right-4 flex gap-2 z-20 animate-fade-in">
-            <Link href={`/edit/${post.id}`}>
+            <Link href={`/edit/${encodeId(post.id)}`}>
               <button className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition backdrop-blur-md border border-white/10 cursor-pointer">
                 <Edit2 size={16} className="text-purple-300" />
               </button>
@@ -199,10 +200,12 @@ export function PostCard({ post, onDelete, hideStatus = false }: PostCardProps &
           <div className="flex items-center gap-3 mb-4">
             <div className="relative">
               {post.author?.profileImage ? (
-                <img
+                <Image
                   src={post.author.profileImage}
                   alt={getAuthorName()}
-                  className="w-8 h-8 rounded-full ring-2 ring-white/10"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 rounded-full ring-2 ring-white/10 object-cover"
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-white/5 ring-2 ring-white/10 flex items-center justify-center">
