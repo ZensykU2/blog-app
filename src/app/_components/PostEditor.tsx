@@ -9,11 +9,13 @@ import { api } from "~/trpc/react";
 
 export function PostEditor() {
   const router = useRouter();
+  const utils = api.useUtils();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
   const createPost = api.post.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.post.invalidate();
       router.push("/");
     },
   });
@@ -59,6 +61,7 @@ export function PostEditor() {
             className="w-full bg-transparent text-5xl md:text-6xl font-black placeholder-white/20 border-none outline-none resize-none tracking-tight pb-4 border-b border-transparent group-focus-within:border-white/10 transition-colors"
             maxLength={255}
             autoFocus
+            spellCheck={false}
           />
         </div>
 
@@ -69,6 +72,7 @@ export function PostEditor() {
             onChange={(e) => setContent(e.target.value)}
             className="w-full min-h-[60vh] bg-transparent text-xl text-slate-300 placeholder-white/20 border-none outline-none resize-none leading-relaxed"
             style={{ fontFamily: 'inherit' }}
+            spellCheck={false}
           />
         </div>
       </form>
