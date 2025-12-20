@@ -81,6 +81,7 @@ export function PostEditForm({ post }: PostEditFormProps) {
             onChange={(e) => setTitle(e.target.value)}
             className="w-full bg-transparent text-5xl md:text-6xl font-black placeholder-white/20 border-none outline-none resize-none tracking-tight pb-4 border-b border-transparent group-focus-within:border-white/10 transition-colors"
             maxLength={255}
+            spellCheck={false}
           />
         </div>
 
@@ -91,6 +92,7 @@ export function PostEditForm({ post }: PostEditFormProps) {
             onChange={(e) => setContent(e.target.value)}
             className="w-full min-h-[60vh] bg-transparent text-xl text-slate-300 placeholder-white/20 border-none outline-none resize-none leading-relaxed"
             style={{ fontFamily: 'inherit' }}
+            spellCheck={false}
           />
         </div>
       </form>
