@@ -175,4 +175,76 @@ export const commentRouter = createTRPCRouter({
 
             return { success: true };
         }),
+
+    getForUser: publicProcedure
+        .input(z.object({
+            userId: z.string().optional(),
+            page: z.number().default(1),
+            limit: z.number().default(10),
+        }))
+        .query(async ({ ctx, input }) => {
+            const targetUserId = input.userId ?? ctx.auth.userId;
+            if (!targetUserId) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "User ID is required" });
+            }
+
+            const offset = (input.page - 1) * input.limit;
+
+            const userComments = await ctx.db
+                .select({
+                    id: comments.id,
+                    content: comments.content,
+                    postId: comments.postId,
+                    authorId: comments.authorId,
+                    parentId: comments.parentId,
+                    createdAt: comments.createdAt,
+                    updatedAt: comments.updatedAt,
+                    post: {
+                        id: posts.id,
+                        title: posts.title,
+                    },
+                    author: {
+                        id: users.id,
+                        displayName: users.displayName,
+                        username: users.username,
+                        profileImage: users.profileImage,
+                    },
+                })
+                .from(comments)
+                .leftJoin(users, eq(comments.authorId, users.clerkId))
+                .leftJoin(posts, eq(comments.postId, posts.id))
+                .where(eq(comments.authorId, targetUserId))
+                .orderBy(desc(comments.createdAt))
+                .limit(input.limit)
+                .offset(offset);
+
+            const viewerId = ctx.auth.userId;
+
+            const commentsWithData = await Promise.all(
+                userComments.map(async (comment) => {
+                    const [likeCountResult] = await ctx.db
+                        .select({ count: count() })
+                        .from(commentLikes)
+                        .where(eq(commentLikes.commentId, comment.id));
+
+                    let isLiked = false;
+                    if (viewerId) {
+                        const [like] = await ctx.db
+                            .select()
+                            .from(commentLikes)
+                            .where(and(eq(commentLikes.commentId, comment.id), eq(commentLikes.userId, viewerId)))
+                            .limit(1);
+                        isLiked = !!like;
+                    }
+
+                    return {
+                        ...comment,
+                        likeCount: likeCountResult?.count ?? 0,
+                        isLiked,
+                    };
+                })
+            );
+
+            return commentsWithData;
+        }),
 });

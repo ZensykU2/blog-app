@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { Trash2, User as UserIcon, Edit3, ChevronDown, ChevronUp, Heart } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { api } from "~/trpc/react";
 import { CommentForm } from "./CommentForm";
 import { DeleteConfirmationModal } from "../DeleteConfirmationModal";
@@ -112,7 +113,10 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
     return (
         <div className={`rounded-xl mb-4 group relative transition-all duration-300 ${comment.parentId ? "bg-transparent mt-4" : "glass-panel p-5 shadow-lg"}`}>
             <div className="flex gap-4">
-                <div className="flex-shrink-0">
+                <Link
+                    href={comment.author?.username ? `/profile/${comment.author.username}` : "#"}
+                    className="flex-shrink-0 transition-transform hover:scale-110"
+                >
                     {comment.author?.profileImage ? (
                         <Image
                             src={comment.author.profileImage}
@@ -126,14 +130,17 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
                             <UserIcon size={20} className="text-slate-400" />
                         </div>
                     )}
-                </div>
+                </Link>
 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between mb-1">
                         <div className="flex items-center gap-2">
-                            <span className="font-semibold text-slate-200">
+                            <Link
+                                href={comment.author?.username ? `/profile/${comment.author.username}` : "#"}
+                                className="font-semibold text-slate-200 hover:text-purple-400 transition-colors"
+                            >
                                 {getAuthorName()}
-                            </span>
+                            </Link>
                             {comment.authorId === postAuthorId && (
                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/20 font-medium">
                                     Author

@@ -8,16 +8,18 @@ import { api } from "~/trpc/react";
 
 interface PostGridProps {
   userId?: string;
-  showAllPosts?: boolean;
+  type?: "all" | "user" | "liked" | "bookmarked";
 }
 
-export function PostGrid({ userId, showAllPosts = false }: PostGridProps) {
+export function PostGrid({ userId, type = "user" }: PostGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 8;
 
-  const { data, isLoading, refetch } = showAllPosts
-    ? api.post.getAll.useQuery({ page: currentPage, limit })
-    : api.post.getByUser.useQuery({ userId, page: currentPage, limit });
+  const { data, isLoading, refetch } =
+    type === "all" ? api.post.getAll.useQuery({ page: currentPage, limit }) :
+      type === "user" ? api.post.getByUser.useQuery({ userId, page: currentPage, limit }) :
+        type === "liked" ? api.post.getLikedByUser.useQuery({ userId, page: currentPage, limit }) :
+          api.post.getBookmarkedByUser.useQuery({ userId, page: currentPage, limit });
 
   if (isLoading) {
     return (

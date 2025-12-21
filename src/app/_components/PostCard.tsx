@@ -88,21 +88,28 @@ export function PostCard({ post, onDelete }: PostCardProps) {
         };
       });
 
-      // Update ALL feed queries
-      const feedKey = getQueryKey(api.post.getAll, undefined, "query");
-      queryClient.setQueriesData({ queryKey: feedKey }, (old: unknown) => {
-        if (!old) return old;
-        const data = old as {
-          posts: Array<{ id: number; isLiked?: boolean; likeCount?: number }>;
-          totalCount: number;
-          hasMore: boolean
-        };
-        return {
-          ...data,
-          posts: data.posts.map((p) =>
-            p.id === post.id ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p
-          )
-        };
+      // Optimistically update ALL post list queries
+      queryClient.setQueriesData({ queryKey: ["post"] }, (old: any) => {
+        if (!old || typeof old !== "object") return old;
+
+        if (Array.isArray(old.posts)) {
+          return {
+            ...old,
+            posts: old.posts.map((p: any) =>
+              p.id === post.id ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p
+            )
+          };
+        }
+
+        if (old.id === post.id) {
+          return {
+            ...old,
+            isLiked: newIsLiked,
+            likeCount: newLikes,
+          };
+        }
+
+        return old;
       });
 
       return { previousPostById };
@@ -116,6 +123,7 @@ export function PostCard({ post, onDelete }: PostCardProps) {
       }
       setIsLiked(post.isLiked ?? false);
       setLikes(post.likeCount ?? 0);
+      toast.error(err.message ?? "Something went wrong");
     }
   });
 
@@ -131,29 +139,27 @@ export function PostCard({ post, onDelete }: PostCardProps) {
       await utils.post.getById.cancel({ id: post.id });
       const previousPostById = utils.post.getById.getData({ id: post.id });
 
-      utils.post.getById.setData({ id: post.id }, (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          isBookmarked: newIsBookmarked,
-        };
-      });
+      // Optimistically update ALL post list queries
+      queryClient.setQueriesData({ queryKey: ["post"] }, (old: any) => {
+        if (!old || typeof old !== "object") return old;
 
-      // Update ALL feed queries
-      const feedKey = getQueryKey(api.post.getAll, undefined, "query");
-      queryClient.setQueriesData({ queryKey: feedKey }, (old: unknown) => {
-        if (!old) return old;
-        const data = old as {
-          posts: Array<{ id: number; isBookmarked?: boolean }>;
-          totalCount: number;
-          hasMore: boolean
-        };
-        return {
-          ...data,
-          posts: data.posts.map((p) =>
-            p.id === post.id ? { ...p, isBookmarked: newIsBookmarked } : p
-          )
-        };
+        if (Array.isArray(old.posts)) {
+          return {
+            ...old,
+            posts: old.posts.map((p: any) =>
+              p.id === post.id ? { ...p, isBookmarked: newIsBookmarked } : p
+            )
+          };
+        }
+
+        if (old.id === post.id) {
+          return {
+            ...old,
+            isBookmarked: newIsBookmarked,
+          };
+        }
+
+        return old;
       });
 
       return { previousPostById };
@@ -218,9 +224,13 @@ export function PostCard({ post, onDelete }: PostCardProps) {
           </div>
         )}
 
-        <Link href={`/post/${encodeId(post.id)}`} className="flex flex-col h-full relative z-10">
+        <div className="flex flex-col h-full relative z-10">
           <div className="flex items-center gap-3 mb-4">
-            <div className="relative">
+            <Link
+              href={post.author?.username ? `/profile/${post.author.username}` : "#"}
+              onClick={(e) => e.stopPropagation()}
+              className="relative transition-transform hover:scale-110 z-20"
+            >
               {post.author?.profileImage ? (
                 <Image
                   src={post.author.profileImage}
@@ -234,12 +244,16 @@ export function PostCard({ post, onDelete }: PostCardProps) {
                   <User size={14} className="text-white/40" />
                 </div>
               )}
-            </div>
+            </Link>
 
             <div className="flex flex-col">
-              <span className="text-sm text-slate-200 font-medium truncate leading-none mb-1">
+              <Link
+                href={post.author?.username ? `/profile/${post.author.username}` : "#"}
+                onClick={(e) => e.stopPropagation()}
+                className="text-sm text-slate-200 font-medium truncate leading-none mb-1 hover:text-purple-400 transition-colors z-20 relative"
+              >
                 {getAuthorName()}
-              </span>
+              </Link>
               <span className="text-xs text-slate-400">
                 {post.createdAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
@@ -248,7 +262,9 @@ export function PostCard({ post, onDelete }: PostCardProps) {
 
           <div className="mb-4">
             <h3 className="font-bold text-slate-100 text-xl line-clamp-2 leading-tight group-hover:text-purple-300 transition-colors">
-              {post.title}
+              <Link href={`/post/${encodeId(post.id)}`} className="after:absolute after:inset-0 after:z-10">
+                {post.title}
+              </Link>
             </h3>
           </div>
 
@@ -258,7 +274,7 @@ export function PostCard({ post, onDelete }: PostCardProps) {
             </p>
           </div>
 
-          <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+          <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between relative z-20">
             <div className="flex items-center gap-4">
               <button
                 onClick={(e) => {
@@ -290,7 +306,7 @@ export function PostCard({ post, onDelete }: PostCardProps) {
               Read blog →
             </span>
           </div>
-        </Link>
+        </div>
       </div>
 
       <DeleteConfirmationModal

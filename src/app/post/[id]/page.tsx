@@ -66,23 +66,31 @@ export default async function PostPage({ params }: PostPageProps) {
         <header className="mb-10 relative z-10">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              {post.author?.profileImage ? (
-                <Image
-                  src={post.author.profileImage}
-                  alt={getAuthorName()}
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-white/5 ring-2 ring-white/10 flex items-center justify-center">
-                  <User size={20} className="text-white/40" />
-                </div>
-              )}
+              <Link
+                href={post.author?.username ? `/profile/${post.author.username}` : "#"}
+                className="transition-transform hover:scale-110"
+              >
+                {post.author?.profileImage ? (
+                  <Image
+                    src={post.author.profileImage}
+                    alt={getAuthorName()}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-white/5 ring-2 ring-white/10 flex items-center justify-center">
+                    <User size={20} className="text-white/40" />
+                  </div>
+                )}
+              </Link>
               <div>
-                <p className="text-sm font-semibold text-white">
+                <Link
+                  href={post.author?.username ? `/profile/${post.author.username}` : "#"}
+                  className="text-sm font-semibold text-white hover:text-purple-400 transition-colors"
+                >
                   {getAuthorName()}
-                </p>
+                </Link>
                 <div className="flex items-center gap-2 text-xs text-slate-400">
                   <span>{post.createdAt.toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
                   {post.updatedAt && post.updatedAt > post.createdAt && (

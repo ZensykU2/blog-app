@@ -64,19 +64,30 @@ export function PostInteractions({
                 };
             });
 
-            // Optimistically update ALL feed queries (including all pagination pages)
-            const feedKey = getQueryKey(api.post.getAll, undefined, "query");
-            queryClient.setQueriesData({ queryKey: feedKey }, (old: unknown) => {
-                if (!old) return old;
-                const data = old as {
-                    posts: Array<{ id: number; isLiked?: boolean; likeCount?: number }>;
-                    totalCount: number;
-                    hasMore: boolean
-                };
-                return {
-                    ...data,
-                    posts: data.posts.map((p) => p.id === postId ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p)
-                };
+            // Optimistically update ALL post list queries (getAll, getByUser, getLikedByUser, getBookmarkedByUser)
+            queryClient.setQueriesData({ queryKey: ["post"] }, (old: any) => {
+                if (!old || typeof old !== "object") return old;
+
+                // If it's a paginated post list { posts: [...], ... }
+                if (Array.isArray(old.posts)) {
+                    return {
+                        ...old,
+                        posts: old.posts.map((p: any) =>
+                            p.id === postId ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p
+                        )
+                    };
+                }
+
+                // If it's a single post object (getById)
+                if (old.id === postId) {
+                    return {
+                        ...old,
+                        isLiked: newIsLiked,
+                        likeCount: newLikes,
+                    };
+                }
+
+                return old;
             });
 
             return { previousPost };
@@ -90,7 +101,7 @@ export function PostInteractions({
             }
             setIsLiked(initialIsLiked);
             setLikes(initialLikes);
-            toast.error(err.message || "Something went wrong");
+            toast.error(err.message ?? "Something went wrong");
         }
     });
 
@@ -106,28 +117,27 @@ export function PostInteractions({
             await utils.post.getById.cancel({ id: postId });
             const previousPost = utils.post.getById.getData({ id: postId });
 
-            // Optimistically update the specific post query
-            utils.post.getById.setData({ id: postId }, (old) => {
-                if (!old) return old;
-                return {
-                    ...old,
-                    isBookmarked: newIsBookmarked,
-                };
-            });
+            // Optimistically update ALL post list queries
+            queryClient.setQueriesData({ queryKey: ["post"] }, (old: any) => {
+                if (!old || typeof old !== "object") return old;
 
-            // Optimistically update ALL feed queries (including all pagination pages)
-            const feedKey = getQueryKey(api.post.getAll, undefined, "query");
-            queryClient.setQueriesData({ queryKey: feedKey }, (old: unknown) => {
-                if (!old) return old;
-                const data = old as {
-                    posts: Array<{ id: number; isBookmarked?: boolean }>;
-                    totalCount: number;
-                    hasMore: boolean
-                };
-                return {
-                    ...data,
-                    posts: data.posts.map((p) => p.id === postId ? { ...p, isBookmarked: newIsBookmarked } : p)
-                };
+                if (Array.isArray(old.posts)) {
+                    return {
+                        ...old,
+                        posts: old.posts.map((p: any) =>
+                            p.id === postId ? { ...p, isBookmarked: newIsBookmarked } : p
+                        )
+                    };
+                }
+
+                if (old.id === postId) {
+                    return {
+                        ...old,
+                        isBookmarked: newIsBookmarked,
+                    };
+                }
+
+                return old;
             });
 
             return { previousPost };
@@ -141,7 +151,7 @@ export function PostInteractions({
                 utils.post.getById.setData({ id: postId }, context.previousPost);
             }
             setIsBookmarked(initialIsBookmarked);
-            toast.error(err.message || "Something went wrong");
+            toast.error(err.message ?? "Something went wrong");
         }
     });
 

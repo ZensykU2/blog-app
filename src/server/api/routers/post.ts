@@ -380,4 +380,188 @@ export const postRouter = createTRPCRouter({
       isBookmarked,
     };
   }),
+
+  getLikedByUser: protectedProcedure
+    .input(z.object({
+      userId: z.string().optional(),
+      page: z.number().default(1),
+      limit: z.number().default(8),
+    }))
+    .query(async ({ ctx, input }) => {
+      const targetUserId = input.userId ?? ctx.auth.userId;
+      const offset = (input.page - 1) * input.limit;
+
+      const likedPosts = await ctx.db
+        .select({
+          id: posts.id,
+          title: posts.title,
+          slug: posts.slug,
+          content: posts.content,
+          excerpt: posts.excerpt,
+          status: posts.status,
+          authorId: posts.authorId,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt,
+          publishedAt: posts.publishedAt,
+          author: {
+            id: users.id,
+            displayName: users.displayName,
+            username: users.username,
+            profileImage: users.profileImage,
+          },
+        })
+        .from(postLikes)
+        .innerJoin(posts, eq(postLikes.postId, posts.id))
+        .leftJoin(users, eq(posts.authorId, users.clerkId))
+        .where(eq(postLikes.userId, targetUserId))
+        .orderBy(desc(postLikes.createdAt))
+        .limit(input.limit)
+        .offset(offset);
+
+      const viewerId = ctx.auth.userId;
+
+      const postsWithAuthors = await Promise.all(
+        likedPosts.map(async (post) => {
+          const [likeCountResult] = await ctx.db
+            .select({ count: count() })
+            .from(postLikes)
+            .where(eq(postLikes.postId, post.id));
+
+          let isLiked = false;
+          let isBookmarked = false;
+
+          if (viewerId) {
+            const [like] = await ctx.db
+              .select()
+              .from(postLikes)
+              .where(and(eq(postLikes.postId, post.id), eq(postLikes.userId, viewerId)))
+              .limit(1);
+            isLiked = !!like;
+
+            const [bookmark] = await ctx.db
+              .select()
+              .from(postBookmarks)
+              .where(and(eq(postBookmarks.postId, post.id), eq(postBookmarks.userId, viewerId)))
+              .limit(1);
+            isBookmarked = !!bookmark;
+          }
+
+          let author = post.author;
+          if (!author?.id) {
+            author = await getClerkUser(post.authorId);
+          }
+
+          return {
+            ...post,
+            author,
+            likeCount: likeCountResult?.count ?? 0,
+            isLiked,
+            isBookmarked,
+          };
+        })
+      );
+
+      const [totalCountResult] = await ctx.db
+        .select({ count: count() })
+        .from(postLikes)
+        .where(eq(postLikes.userId, targetUserId));
+
+      return {
+        posts: postsWithAuthors,
+        totalCount: totalCountResult?.count ?? 0,
+        hasMore: (totalCountResult?.count ?? 0) > offset + input.limit,
+      };
+    }),
+
+  getBookmarkedByUser: protectedProcedure
+    .input(z.object({
+      userId: z.string().optional(),
+      page: z.number().default(1),
+      limit: z.number().default(8),
+    }))
+    .query(async ({ ctx, input }) => {
+      const targetUserId = input.userId ?? ctx.auth.userId;
+      const offset = (input.page - 1) * input.limit;
+
+      const bookmarkedPosts = await ctx.db
+        .select({
+          id: posts.id,
+          title: posts.title,
+          slug: posts.slug,
+          content: posts.content,
+          excerpt: posts.excerpt,
+          status: posts.status,
+          authorId: posts.authorId,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt,
+          publishedAt: posts.publishedAt,
+          author: {
+            id: users.id,
+            displayName: users.displayName,
+            username: users.username,
+            profileImage: users.profileImage,
+          },
+        })
+        .from(postBookmarks)
+        .innerJoin(posts, eq(postBookmarks.postId, posts.id))
+        .leftJoin(users, eq(posts.authorId, users.clerkId))
+        .where(eq(postBookmarks.userId, targetUserId))
+        .orderBy(desc(postBookmarks.createdAt))
+        .limit(input.limit)
+        .offset(offset);
+
+      const viewerId = ctx.auth.userId;
+
+      const postsWithAuthors = await Promise.all(
+        bookmarkedPosts.map(async (post) => {
+          const [likeCountResult] = await ctx.db
+            .select({ count: count() })
+            .from(postLikes)
+            .where(eq(postLikes.postId, post.id));
+
+          let isLiked = false;
+          let isBookmarked = false;
+
+          if (viewerId) {
+            const [like] = await ctx.db
+              .select()
+              .from(postLikes)
+              .where(and(eq(postLikes.postId, post.id), eq(postLikes.userId, viewerId)))
+              .limit(1);
+            isLiked = !!like;
+
+            const [bookmark] = await ctx.db
+              .select()
+              .from(postBookmarks)
+              .where(and(eq(postBookmarks.postId, post.id), eq(postBookmarks.userId, viewerId)))
+              .limit(1);
+            isBookmarked = !!bookmark;
+          }
+
+          let author = post.author;
+          if (!author?.id) {
+            author = await getClerkUser(post.authorId);
+          }
+
+          return {
+            ...post,
+            author,
+            likeCount: likeCountResult?.count ?? 0,
+            isLiked,
+            isBookmarked,
+          };
+        })
+      );
+
+      const [totalCountResult] = await ctx.db
+        .select({ count: count() })
+        .from(postBookmarks)
+        .where(eq(postBookmarks.userId, targetUserId));
+
+      return {
+        posts: postsWithAuthors,
+        totalCount: totalCountResult?.count ?? 0,
+        hasMore: (totalCountResult?.count ?? 0) > offset + input.limit,
+      };
+    }),
 });
