@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { encodeId } from "~/lib/ids";
 
 import { api } from "~/trpc/react";
 
@@ -14,9 +15,13 @@ export function PostEditor() {
   const [content, setContent] = useState("");
 
   const createPost = api.post.create.useMutation({
-    onSuccess: async () => {
-      await utils.post.invalidate();
-      router.push("/");
+    onSuccess: (data) => {
+      void utils.post.invalidate();
+      if (data?.id) {
+        router.push(`/post/${encodeId(data.id)}`);
+      } else {
+        router.push("/");
+      }
     },
   });
 

@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { toast } from "react-hot-toast";
 
 import { api } from "~/trpc/react";
+import { encodeId } from "~/lib/ids";
 
 interface PostEditFormProps {
   post: {
@@ -31,8 +33,16 @@ export function PostEditForm({ post }: PostEditFormProps) {
   const [content, setContent] = useState(post.content);
 
   const updatePost = api.post.update.useMutation({
-    onSuccess: () => {
-      router.push(`/post/${post.id}`);
+    onSuccess: (data) => {
+      if (data?.id) {
+        router.push(`/post/${encodeId(data.id)}`);
+      } else {
+        router.push("/");
+      }
+      toast.success("Post updated!");
+    },
+    onError: (error) => {
+      toast.error(`Failed to update post: ${error.message}`);
     },
   });
 
@@ -51,7 +61,10 @@ export function PostEditForm({ post }: PostEditFormProps) {
     <div className="max-w-3xl mx-auto pb-20">
       {/* Header */}
       <div className="flex items-center justify-between mb-12">
-        <Link href={`/post/${post.id}`}>
+        <Link
+          href={`/post/${encodeId(post.id)}`}
+          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer group w-fit"
+        >
           <button className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer group">
             <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
             Back to Post

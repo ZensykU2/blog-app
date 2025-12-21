@@ -34,7 +34,10 @@
     "postgres": "^3.4.7",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-hot-toast": "^2.6.0",
+    "react-textarea-autosize": "^8.5.9",
     "server-only": "^0.0.1",
+    "sqids": "^0.3.0",
     "superjson": "^2.2.6",
     "svix": "^1.82.0",
     "zod": "^3.25.76"
