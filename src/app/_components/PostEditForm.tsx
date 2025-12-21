@@ -23,6 +23,7 @@ interface PostEditFormProps {
       displayName: string | null;
       username: string | null;
       profileImage: string | null;
+      image: string | null;
     } | null;
   };
 }

@@ -1,12 +1,12 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
 
 import { PostEditor } from "../../app/_components/PostEditor";
 
 export default async function CreatePost() {
-  const { userId } = await auth();
+  const session = await auth();
 
-  if (!userId) {
+  if (!session?.user) {
     redirect("/");
   }
 

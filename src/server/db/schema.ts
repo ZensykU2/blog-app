@@ -38,15 +38,18 @@ export const users = createTable(
   "user",
   (d) => ({
     id: d.varchar({ length: 255 }).notNull().primaryKey(),
-    clerkId: d.varchar({ length: 255 }).notNull().unique(),
+    name: d.varchar({ length: 255 }),
     email: d.varchar({ length: 255 }).notNull(),
-    username: d.varchar({ length: 50 }).notNull().unique(),
+    emailVerified: d.timestamp({ withTimezone: true, mode: "date" }),
+    image: d.text(),
+    password: d.varchar({ length: 255 }), // For email/password auth (hashed)
+    clerkId: d.varchar({ length: 255 }).unique(), // Made optional for migration
+    username: d.varchar({ length: 50 }).unique(),
     displayName: d.varchar({ length: 100 }),
     bio: d.text(),
     profileImage: d.text(),
     role: userRoleEnum().default("user").notNull(),
     isVerified: d.boolean().default(false).notNull(),
-    emailVerified: d.timestamp({ withTimezone: true }),
     createdAt: d
       .timestamp({ withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -54,9 +57,54 @@ export const users = createTable(
     updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
   }),
   (t) => [
-    index("user_clerk_id_idx").on(t.clerkId),
     index("user_username_idx").on(t.username),
     index("user_email_idx").on(t.email),
+  ]
+);
+
+// ============ AUTH.JS TABLES ============
+export const accounts = createTable(
+  "account",
+  (d) => ({
+    userId: d.varchar({ length: 255 }).notNull(),
+    type: d.varchar({ length: 255 }).notNull(),
+    provider: d.varchar({ length: 255 }).notNull(),
+    providerAccountId: d.varchar({ length: 255 }).notNull(),
+    refresh_token: d.text(),
+    access_token: d.text(),
+    expires_at: d.integer(),
+    token_type: d.varchar({ length: 255 }),
+    scope: d.varchar({ length: 255 }),
+    id_token: d.text(),
+    session_state: d.varchar({ length: 255 }),
+  }),
+  (t) => [
+    primaryKey({ columns: [t.provider, t.providerAccountId] }),
+    index("account_user_id_idx").on(t.userId),
+  ]
+);
+
+export const sessions = createTable(
+  "session",
+  (d) => ({
+    sessionToken: d.varchar({ length: 255 }).notNull().primaryKey(),
+    userId: d.varchar({ length: 255 }).notNull(),
+    expires: d.timestamp({ withTimezone: true, mode: "date" }).notNull(),
+  }),
+  (t) => [
+    index("session_user_id_idx").on(t.userId),
+  ]
+);
+
+export const verificationTokens = createTable(
+  "verification_token",
+  (d) => ({
+    identifier: d.varchar({ length: 255 }).notNull(),
+    token: d.varchar({ length: 255 }).notNull(),
+    expires: d.timestamp({ withTimezone: true, mode: "date" }).notNull(),
+  }),
+  (t) => [
+    primaryKey({ columns: [t.identifier, t.token] }),
   ]
 );
 
@@ -64,7 +112,7 @@ export const users = createTable(
 export const userSocialLinks = createTable("user_social_link", (d) => ({
   id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
   userId: d.varchar({ length: 255 }).notNull(),
-  platform: d.varchar({ length: 50 }).notNull(), 
+  platform: d.varchar({ length: 50 }).notNull(),
   url: d.text().notNull(),
   createdAt: d
     .timestamp({ withTimezone: true })

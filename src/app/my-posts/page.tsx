@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
 import Link from "next/link";
@@ -8,7 +8,8 @@ import { PostGrid } from "~/app/_components/PostGrid";
 export const dynamic = 'force-dynamic';
 
 export default async function MyPosts() {
-  const { userId } = await auth();
+  const session = await auth();
+  const userId = session?.user?.id;
 
   if (!userId) {
     redirect("/");

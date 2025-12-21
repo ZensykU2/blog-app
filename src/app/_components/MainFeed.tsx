@@ -24,7 +24,7 @@ export function MainFeed() {
         </div>
       </div>
 
-      <PostGrid showAllPosts={true} />
+      <PostGrid type="all" />
     </div>
   );
 }
