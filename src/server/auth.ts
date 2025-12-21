@@ -129,7 +129,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     events: {
         // Generate username for OAuth users when they first sign up
         async createUser({ user }) {
-            if (user.id != null && user.email != null && user.username == null) {
+            if (user?.id && user?.email && !user?.username) {
                 const username = await generateUniqueUsername(user.email, user.name);
                 await db
                     .update(users)

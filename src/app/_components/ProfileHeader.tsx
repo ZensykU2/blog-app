@@ -98,7 +98,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                 setIsUpdatingImage(false);
             };
             reader.readAsDataURL(file);
-        } catch (_error) {
+        } catch {
             toast.error("Failed to update profile picture");
             setIsUpdatingImage(false);
         }
@@ -120,7 +120,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
             setIsEditingProfile(false);
             void refetch();
             void utils.user.getCurrentUser.invalidate();
-        } catch (_error) {
+        } catch {
             toast.error("Failed to update profile");
         }
     };
@@ -288,7 +288,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                                     {isOwner && <Edit2 size={12} className="opacity-0 group-hover/bio:opacity-100 transition-opacity" />}
                                 </div>
                                 <p className="text-slate-300 leading-relaxed max-w-2xl italic">
-                                    {dbUser.bio ? dbUser.bio : (isOwner ? "No bio added yet. Click here to add one!" : "No bio added yet.")}
+                                    {dbUser.bio ?? (isOwner ? "No bio added yet. Click here to add one!" : "No bio added yet.")}
                                 </p>
                             </div>
                         )}
