@@ -77,7 +77,7 @@ export function CommentForm({
         );
     }
 
-    const isPending = createComment.isPending || updateComment.isPending;
+    const isPending = createComment.isPending ?? updateComment.isPending;
 
     return (
         <div className={`glass-panel p-6 rounded-xl ${isUpdate ? "mt-4" : "mb-8"}`}>
