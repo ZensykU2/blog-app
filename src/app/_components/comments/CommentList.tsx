@@ -58,7 +58,7 @@ export function CommentList({ postId, postAuthorId }: CommentListProps) {
                             if (c.parentId && commentMap.has(c.parentId)) {
                                 const parent = commentMap.get(c.parentId);
                                 if (parent) {
-                                    if (!parent.replies) parent.replies = [];
+                                    parent.replies ??= [];
                                     parent.replies.push(mappedComment);
                                 }
                             } else {

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Heart, Bookmark, Share2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "react-hot-toast";
@@ -23,7 +22,6 @@ export function PostInteractions({
     isBookmarked: initialIsBookmarked,
 }: PostInteractionsProps) {
     const { isSignedIn } = useUser();
-    const router = useRouter();
     const queryClient = useQueryClient();
     const [likes, setLikes] = useState(initialLikes);
     const [isLiked, setIsLiked] = useState(initialIsLiked);
@@ -148,7 +146,7 @@ export function PostInteractions({
     });
 
     const handleShare = () => {
-        navigator.clipboard.writeText(window.location.href);
+        void navigator.clipboard.writeText(window.location.href);
         toast.success("Link copied to clipboard!");
     };
 
