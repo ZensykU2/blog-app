@@ -1,7 +1,8 @@
-import { notFound, redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { auth } from "~/server/auth";
 
 import { api } from "~/trpc/server";
+import { decodeId } from "~/lib/ids";
 import { PostEditForm } from "../../_components/PostEditForm";
 
 interface EditPostPageProps {
@@ -10,21 +11,23 @@ interface EditPostPageProps {
 
 export default async function EditPostPage({ params }: EditPostPageProps) {
   const { id } = await params;
-  const { userId } = await auth();
-  
+  const session = await auth();
+  const userId = session?.user?.id;
+
   if (!userId) {
     redirect("/");
   }
 
-  const postId = parseInt(id);
-  if (isNaN(postId)) {
-    notFound();
+  const postId = decodeId(id);
+
+  if (postId === null) {
+    redirect("/");
   }
 
   const post = await api.post.getById({ id: postId });
-  
+
   if (!post) {
-    notFound();
+    redirect("/");
   }
 
   if (post.authorId !== userId) {
@@ -32,10 +35,8 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-      <div className="container mx-auto px-4 py-8">
-        <PostEditForm post={post} />
-      </div>
+    <main className="container mx-auto px-4 py-8 animate-slide-up">
+      <PostEditForm post={post} />
     </main>
   );
 }
