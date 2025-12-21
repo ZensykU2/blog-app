@@ -105,7 +105,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     .limit(1)
                     .then((rows) => rows[0]);
 
-                if (!user || !user.password) {
+                if (!user?.password) {
                     return null;
                 }
 
