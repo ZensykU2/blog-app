@@ -9,25 +9,28 @@ import { CommentForm } from "./CommentForm";
 import { DeleteConfirmationModal } from "../DeleteConfirmationModal";
 import { toast } from "react-hot-toast";
 
+export type CommentWithReplies = {
+    id: number;
+    content: string;
+    createdAt: Date;
+    updatedAt: Date | null;
+    authorId: string;
+    postId: number;
+    parentId: number | null;
+    author: {
+        id: string | null;
+        displayName: string | null;
+        username: string | null;
+        profileImage: string | null;
+    } | null;
+    likeCount?: number;
+    isLiked?: boolean;
+    replies?: CommentWithReplies[];
+};
+
 interface CommentItemProps {
-    comment: {
-        id: number;
-        content: string;
-        createdAt: Date;
-        updatedAt: Date | null;
-        authorId: string;
-        postId: number;
-        parentId: number | null;
-        author: {
-            id: string | null;
-            displayName: string | null;
-            username: string | null;
-            profileImage: string | null;
-        } | null;
-        likeCount?: number;
-        isLiked?: boolean;
-    };
-    replies?: any[];
+    comment: CommentWithReplies;
+    replies?: CommentWithReplies[];
     postAuthorId: string;
     onDelete: () => void;
     onUpdate: () => void;
@@ -41,8 +44,8 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
     const [isExpanded, setIsExpanded] = useState(false);
     const [visibleRepliesCount, setVisibleRepliesCount] = useState(5);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [likes, setLikes] = useState((comment as any).likeCount ?? 0);
-    const [isLiked, setIsLiked] = useState((comment as any).isLiked ?? false);
+    const [likes, setLikes] = useState(comment.likeCount ?? 0);
+    const [isLiked, setIsLiked] = useState(comment.isLiked ?? false);
     const utils = api.useUtils();
 
     const toggleLike = api.interaction.toggleCommentLike.useMutation({
@@ -59,8 +62,8 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
             await utils.comment.getByPostId.invalidate({ postId: comment.postId });
         },
         onError: () => {
-            setIsLiked((comment as any).isLiked ?? false);
-            setLikes((comment as any).likeCount ?? 0);
+            setIsLiked(comment.isLiked ?? false);
+            setLikes(comment.likeCount ?? 0);
         }
     });
 
@@ -100,7 +103,7 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
 
     const getAuthorName = () => {
         if (!comment.author) return "Unknown User";
-        return comment.author.displayName || comment.author.username || "Unknown User";
+        return comment.author.displayName ?? comment.author.username ?? "Unknown User";
     };
 
     const hasMoreReplies = replies.length > visibleRepliesCount;

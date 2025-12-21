@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api } from "~/trpc/react";
 import { CommentForm } from "./CommentForm";
-import { CommentItem } from "./CommentItem";
+import { CommentItem, type CommentWithReplies } from "./CommentItem";
 import { MessageSquare } from "lucide-react";
 
 interface CommentListProps {
@@ -47,15 +47,22 @@ export function CommentList({ postId, postAuthorId }: CommentListProps) {
             ) : (
                 <div className="space-y-6">
                     {(() => {
-                        const commentMap = new Map();
+                        const commentMap = new Map<number, CommentWithReplies>();
                         comments?.forEach(c => commentMap.set(c.id, { ...c, replies: [] }));
 
-                        const rootComments: any[] = [];
+                        const rootComments: CommentWithReplies[] = [];
                         comments?.forEach(c => {
+                            const mappedComment = commentMap.get(c.id);
+                            if (!mappedComment) return;
+
                             if (c.parentId && commentMap.has(c.parentId)) {
-                                commentMap.get(c.parentId).replies.push(commentMap.get(c.id));
+                                const parent = commentMap.get(c.parentId);
+                                if (parent) {
+                                    if (!parent.replies) parent.replies = [];
+                                    parent.replies.push(mappedComment);
+                                }
                             } else {
-                                rootComments.push(commentMap.get(c.id));
+                                rootComments.push(mappedComment);
                             }
                         });
 
