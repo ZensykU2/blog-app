@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Send } from "lucide-react";
 import { api } from "~/trpc/react";
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -28,7 +28,7 @@ export function CommentForm({
     parentId,
     onCancel
 }: CommentFormProps) {
-    const { user, isLoaded, isSignedIn } = useUser();
+    const { data: session, status } = useSession();
     const [content, setContent] = useState(initialContent);
 
     const createComment = api.comment.create.useMutation({
@@ -62,9 +62,9 @@ export function CommentForm({
         }
     };
 
-    if (!isLoaded) return null;
+    if (status === 'loading') return null;
 
-    if (!isSignedIn && !isUpdate) {
+    if (status !== 'authenticated' && !isUpdate) {
         return (
             <div className="glass-panel p-6 rounded-xl text-center">
                 <p className="text-slate-300 mb-4">Sign in to join the conversation</p>
@@ -82,10 +82,10 @@ export function CommentForm({
     return (
         <div className={`glass-panel p-6 rounded-xl ${isUpdate ? "mt-4" : "mb-8"}`}>
             <div className="flex gap-4">
-                {!isUpdate && user?.imageUrl && (
+                {!isUpdate && session?.user?.image && (
                     <Image
-                        src={user.imageUrl}
-                        alt={user.fullName ?? "User"}
+                        src={session.user.image}
+                        alt={session.user.name ?? "User"}
                         width={40}
                         height={40}
                         className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"

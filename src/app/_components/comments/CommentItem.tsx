@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import { Trash2, User as UserIcon, Edit3, ChevronDown, ChevronUp, Heart } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
@@ -23,6 +23,7 @@ export type CommentWithReplies = {
         displayName: string | null;
         username: string | null;
         profileImage: string | null;
+        image: string | null;
     } | null;
     likeCount?: number;
     isLiked?: boolean;
@@ -38,7 +39,7 @@ interface CommentItemProps {
 }
 
 export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onUpdate }: CommentItemProps) {
-    const { user, isSignedIn } = useUser();
+    const { data: session, status } = useSession();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [isReplying, setIsReplying] = useState(false);
@@ -51,7 +52,7 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
 
     const toggleLike = api.interaction.toggleCommentLike.useMutation({
         onMutate: () => {
-            if (!isSignedIn) {
+            if (status !== 'authenticated') {
                 toast.error("Please sign in to like comments");
                 return;
             }
@@ -79,8 +80,8 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
         }
     });
 
-    const isAuthor = user?.id === comment.authorId;
-    const isPostAuthor = user?.id === postAuthorId;
+    const isAuthor = session?.user?.id === comment.authorId;
+    const isPostAuthor = session?.user?.id === postAuthorId;
     const canDelete = isAuthor || isPostAuthor;
     const canEdit = isAuthor;
 
@@ -117,9 +118,9 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
                     href={comment.author?.username ? `/profile/${comment.author.username}` : "#"}
                     className="flex-shrink-0 transition-transform hover:scale-110"
                 >
-                    {comment.author?.profileImage ? (
+                    {(comment.author?.profileImage ?? comment.author?.image) ? (
                         <Image
-                            src={comment.author.profileImage}
+                            src={(comment.author.profileImage ?? comment.author?.image)!}
                             alt={getAuthorName()}
                             width={40}
                             height={40}
@@ -207,7 +208,7 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
                                     <span className="text-xs font-bold">{likes}</span>
                                 </button>
 
-                                {isSignedIn && (
+                                {status === 'authenticated' && (
                                     <button
                                         onClick={() => setIsReplying(!isReplying)}
                                         className="text-xs font-bold text-slate-500 hover:text-purple-400 transition-colors cursor-pointer p-0 border-none bg-transparent"

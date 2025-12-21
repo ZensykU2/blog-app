@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import { Edit2, Trash2, User, Heart, Bookmark } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -27,6 +27,7 @@ interface PostCardProps {
       displayName: string | null;
       username: string | null;
       profileImage: string | null;
+      image: string | null
     } | null;
     likeCount?: number;
     isLiked?: boolean;
@@ -38,7 +39,7 @@ interface PostCardProps {
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 
 export function PostCard({ post, onDelete }: PostCardProps) {
-  const { user } = useUser();
+  const { data: session } = useSession();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isHovered, setIsHovered] = useState(false);
@@ -65,7 +66,7 @@ export function PostCard({ post, onDelete }: PostCardProps) {
 
   const toggleLike = api.interaction.togglePostLike.useMutation({
     onMutate: async () => {
-      if (!user) {
+      if (!session?.user) {
         toast.error("Please sign in to like posts");
         return;
       }
@@ -129,7 +130,7 @@ export function PostCard({ post, onDelete }: PostCardProps) {
 
   const toggleBookmark = api.interaction.togglePostBookmark.useMutation({
     onMutate: async () => {
-      if (!user) {
+      if (!session?.user) {
         toast.error("Please sign in to save posts");
         return;
       }
@@ -176,7 +177,7 @@ export function PostCard({ post, onDelete }: PostCardProps) {
     }
   });
 
-  const isOwner = user?.id === post.authorId;
+  const isOwner = session?.user?.id === post.authorId;
   const getAuthorName = () => {
     if (!post.author) return "Unknown Author";
     if (post.author.displayName) return post.author.displayName;
@@ -231,9 +232,9 @@ export function PostCard({ post, onDelete }: PostCardProps) {
               onClick={(e) => e.stopPropagation()}
               className="relative transition-transform hover:scale-110 z-20"
             >
-              {post.author?.profileImage ? (
+              {(post.author?.profileImage ?? post.author?.image)? (
                 <Image
-                  src={post.author.profileImage}
+                  src={(post.author?.profileImage ?? post.author?.image)!}
                   alt={getAuthorName()}
                   width={32}
                   height={32}
@@ -280,7 +281,7 @@ export function PostCard({ post, onDelete }: PostCardProps) {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (!user) return toast.error("Please sign in to like posts");
+                  if (!session?.user) return toast.error("Please sign in to like posts");
                   toggleLike.mutate({ postId: post.id });
                 }}
                 className={`flex items-center gap-1.5 transition-colors hover:text-pink-400 ${isLiked ? "text-pink-500" : "text-slate-400"}`}
@@ -293,7 +294,7 @@ export function PostCard({ post, onDelete }: PostCardProps) {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (!user) return toast.error("Please sign in to save posts");
+                  if (!session?.user) return toast.error("Please sign in to save posts");
                   toggleBookmark.mutate({ postId: post.id });
                 }}
                 className={`flex items-center transition-colors hover:text-yellow-400 ${isBookmarked ? "text-yellow-500" : "text-slate-400"}`}

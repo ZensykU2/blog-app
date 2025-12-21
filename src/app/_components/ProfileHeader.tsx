@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useUser, useClerk } from "@clerk/nextjs";
+import { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { Edit2, Check, X, Camera, Settings } from "lucide-react";
+import { Edit2, Check, X, User, Camera, Settings } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
 import { api } from "~/trpc/react";
 import { toast } from "react-hot-toast";
@@ -13,23 +13,32 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ username }: ProfileHeaderProps) {
-    const { user: currentUser, isLoaded: isCurrentUserLoaded } = useUser();
-    const { openUserProfile } = useClerk();
+    const { data: session, status: sessionStatus } = useSession();
+    const isSessionLoaded = sessionStatus !== "loading";
     const [isEditingBio, setIsEditingBio] = useState(false);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [isUpdatingImage, setIsUpdatingImage] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const utils = api.useUtils();
+
 
     // Fetch the target user's profile from our DB
     const { data: dbUser, refetch, isLoading: isProfileLoading } = api.user.getProfile.useQuery({
         username,
     });
 
-    const isOwner = isCurrentUserLoaded && currentUser?.username === username;
+    const isOwner = isSessionLoaded && session?.user && dbUser?.id === session.user.id;
 
     const [bio, setBio] = useState("");
+    const [displayName, setDisplayName] = useState("");
 
-    // Sync local bio state when dbUser is loaded
+    // Sync local state when dbUser is loaded
     useEffect(() => {
         if (dbUser?.bio) {
             setBio(dbUser.bio);
+        }
+        if (dbUser?.displayName) {
+            setDisplayName(dbUser.displayName);
         }
     }, [dbUser]);
 
@@ -44,7 +53,79 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
         },
     });
 
-    if (isProfileLoading || !isCurrentUserLoaded || !dbUser) {
+    const handleImageClick = () => {
+        if (isOwner && fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type and size
+        if (!file.type.startsWith("image/")) {
+            toast.error("Please select an image file");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("Image must be less than 5MB");
+            return;
+        }
+
+        setIsUpdatingImage(true);
+        try {
+            // Convert to base64 for simplicity (in production, use cloud storage)
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64 = reader.result as string;
+
+                const response = await fetch("/api/auth/profile", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ profileImage: base64 }),
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to update profile image");
+                }
+
+                toast.success("Profile picture updated!");
+                void refetch();
+                void utils.user.getCurrentUser.invalidate();
+                void utils.user.getProfile.invalidate();
+                void utils.post.invalidate();
+                setIsUpdatingImage(false);
+            };
+            reader.readAsDataURL(file);
+        } catch (error) {
+            toast.error("Failed to update profile picture");
+            setIsUpdatingImage(false);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        try {
+            const response = await fetch("/api/auth/profile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ displayName }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to update profile");
+            }
+
+            toast.success("Profile updated!");
+            setIsEditingProfile(false);
+            void refetch();
+            void utils.user.getCurrentUser.invalidate();
+        } catch (error) {
+            toast.error("Failed to update profile");
+        }
+    };
+
+    if (isProfileLoading || !isSessionLoaded || !dbUser) {
         return (
             <div className="glass-panel p-8 rounded-2xl animate-pulse mb-8">
                 <div className="flex flex-col md:flex-row items-center gap-8">
@@ -68,87 +149,96 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
             {/* Decorative background blur */}
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-500/10 blur-[100px] rounded-full transition-all group-hover:bg-purple-500/20" />
 
+            {/* Hidden file input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+            />
+
             <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-8">
+                {/* Profile Image */}
                 <div className="relative">
-                    <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white/10 shadow-2xl relative group/avatar">
-                        <Image
-                            src={dbUser.profileImage ?? ""}
-                            alt={dbUser.displayName ?? dbUser.username ?? "Profile"}
-                            width={128}
-                            height={128}
-                            className="object-cover w-full h-full transition-transform duration-500 group-hover/avatar:scale-110"
-                        />
-                        {isOwner && (
-                            <div
-                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer"
-                                onClick={() => {
-                                    openUserProfile({
-                                        appearance: {
-                                            elements: {
-                                                navbarButton__security: "hidden",
-                                                profileSection__emailAddresses: {
-                                                    "& .cl-profileSectionSecondaryButton": {
-                                                        display: "none"
-                                                    }
-                                                },
-                                                profileSection__connectedAccounts: {
-                                                    "& .cl-profileSectionSecondaryButton": {
-                                                        display: "none"
-                                                    }
-                                                },
-                                                userProfilePopoverFooter: "hidden"
-                                            }
-                                        }
-                                    });
-                                }}
-                            >
-                                <Camera className="text-white" size={24} />
+                    <div
+                        className={`w-32 h-32 rounded-full overflow-hidden ring-4 ring-white/10 shadow-2xl relative group/avatar ${isOwner ? 'cursor-pointer' : ''}`}
+                        onClick={handleImageClick}
+                    >
+                        {isUpdatingImage ? (
+                            <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                                <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+                            </div>
+                        ) : dbUser.profileImage ?? dbUser.image ? (
+                            <Image
+                                src={(dbUser.profileImage ?? dbUser.image)!}
+                                alt={dbUser.displayName ?? dbUser.username ?? "Profile"}
+                                width={128}
+                                height={128}
+                                className="object-cover w-full h-full transition-transform duration-500 group-hover/avatar:scale-110"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                                <User size={48} className="text-slate-600" />
+                            </div>
+                        )}
+
+                        {/* Overlay for edit indicator */}
+                        {isOwner && !isUpdatingImage && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                                <Camera size={24} className="text-white" />
                             </div>
                         )}
                     </div>
-                    {isOwner && (
-                        <div className="absolute -bottom-2 -right-2 p-2 rounded-full bg-purple-600 text-white shadow-lg shadow-purple-500/20">
-                            <Settings size={14} />
-                        </div>
-                    )}
                 </div>
 
+                {/* Profile Info */}
                 <div className="flex-1 text-center md:text-left">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                         <div>
-                            <h1 className="text-3xl font-black text-white tracking-tight leading-tight">
-                                {dbUser.displayName ?? dbUser.username}
-                            </h1>
+                            {isEditingProfile ? (
+                                <div className="flex items-center gap-2 mb-2">
+                                    <input
+                                        type="text"
+                                        value={displayName}
+                                        onChange={(e) => setDisplayName(e.target.value)}
+                                        placeholder="Display Name"
+                                        className="text-2xl font-black text-white bg-white/5 border border-white/10 rounded-lg px-3 py-1 focus:outline-none focus:border-purple-500/50"
+                                    />
+                                    <button
+                                        onClick={handleSaveProfile}
+                                        className="p-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors"
+                                    >
+                                        <Check size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setDisplayName(dbUser.displayName ?? "");
+                                            setIsEditingProfile(false);
+                                        }}
+                                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 transition-colors"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <h1 className="text-3xl font-black text-white tracking-tight leading-tight">
+                                    {dbUser.displayName ?? dbUser.username}
+                                </h1>
+                            )}
                             <p className="text-purple-400 font-medium tracking-wide">
                                 @{dbUser.username}
                             </p>
                         </div>
 
-                        {isOwner && (
+                        {/* Settings Button - Only for owner */}
+                        {isOwner && !isEditingProfile && (
                             <button
-                                onClick={() => {
-                                    openUserProfile({
-                                        appearance: {
-                                            elements: {
-                                                navbarButton__security: "hidden",
-                                                profileSection__emailAddresses: {
-                                                    "& .cl-profileSectionSecondaryButton": {
-                                                        display: "none"
-                                                    }
-                                                },
-                                                profileSection__connectedAccounts: {
-                                                    "& .cl-profileSectionSecondaryButton": {
-                                                        display: "none"
-                                                    }
-                                                },
-                                                userProfilePopoverFooter: "hidden"
-                                            }
-                                        }
-                                    });
-                                }}
-                                className="px-6 py-2 rounded-full glass-button text-sm font-bold text-slate-200 hover:text-white transition-all cursor-pointer border border-white/10"
+                                onClick={() => setIsEditingProfile(true)}
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors border border-white/10"
                             >
-                                Manage Account
+                                <Settings size={16} />
+                                <span className="text-sm font-medium">Edit Profile</span>
                             </button>
                         )}
                     </div>

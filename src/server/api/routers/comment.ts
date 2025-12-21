@@ -4,7 +4,6 @@ import { TRPCError } from "@trpc/server";
 
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { comments, posts, users, commentLikes } from "~/server/db/schema";
-import { getClerkUser } from "~/lib/clerk-user";
 import { count } from "drizzle-orm";
 
 export const commentRouter = createTRPCRouter({
@@ -25,17 +24,17 @@ export const commentRouter = createTRPCRouter({
                         displayName: users.displayName,
                         username: users.username,
                         profileImage: users.profileImage,
+                        image: users.image,
                     },
                 })
                 .from(comments)
-                .leftJoin(users, eq(comments.authorId, users.clerkId))
+                .leftJoin(users, eq(comments.authorId, users.id))
                 .where(eq(comments.postId, input.postId))
                 .orderBy(desc(comments.createdAt));
 
-            const userId = ctx.auth.userId;
+            const userId = ctx.session?.user?.id;
 
-            // Fallback: Fetch missing user data from Clerk and interactions
-            const commentsWithAuthors = await Promise.all(
+            const commentsWithData = await Promise.all(
                 allComments.map(async (comment) => {
                     // Get like count
                     const [likeCountResult] = await ctx.db
@@ -53,21 +52,15 @@ export const commentRouter = createTRPCRouter({
                         isLiked = !!like;
                     }
 
-                    let author = comment.author;
-                    if (!author?.id) {
-                        author = await getClerkUser(comment.authorId);
-                    }
-
                     return {
                         ...comment,
-                        author,
                         likeCount: likeCountResult?.count ?? 0,
                         isLiked,
                     };
                 })
             );
 
-            return commentsWithAuthors;
+            return commentsWithData;
         }),
 
     create: protectedProcedure
@@ -183,7 +176,7 @@ export const commentRouter = createTRPCRouter({
             limit: z.number().default(10),
         }))
         .query(async ({ ctx, input }) => {
-            const targetUserId = input.userId ?? ctx.auth.userId;
+            const targetUserId = input.userId ?? ctx.session?.user?.id;
             if (!targetUserId) {
                 throw new TRPCError({ code: "BAD_REQUEST", message: "User ID is required" });
             }
@@ -208,17 +201,18 @@ export const commentRouter = createTRPCRouter({
                         displayName: users.displayName,
                         username: users.username,
                         profileImage: users.profileImage,
+                        image: users.image,
                     },
                 })
                 .from(comments)
-                .leftJoin(users, eq(comments.authorId, users.clerkId))
+                .leftJoin(users, eq(comments.authorId, users.id))
                 .leftJoin(posts, eq(comments.postId, posts.id))
                 .where(eq(comments.authorId, targetUserId))
                 .orderBy(desc(comments.createdAt))
                 .limit(input.limit)
                 .offset(offset);
 
-            const viewerId = ctx.auth.userId;
+            const viewerId = ctx.session?.user?.id;
 
             const commentsWithData = await Promise.all(
                 userComments.map(async (comment) => {

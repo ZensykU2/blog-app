@@ -1,25 +1,26 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function ProfilePage() {
-    const { user, isLoaded, isSignedIn } = useUser();
+    const { data: session, status } = useSession();
     const router = useRouter();
 
     useEffect(() => {
-        if (isLoaded) {
-            if (isSignedIn && user?.username) {
-                router.replace(`/profile/${user.username}`);
-            } else if (isSignedIn && !user?.username) {
-                // Fallback for users without usernames (rare in Clerk if configured)
+        if (status !== 'loading') {
+            if (session?.user?.username) {
+                router.replace(`/profile/${session.user.username}`);
+            } else if (session?.user) {
+                // User is logged in but has no username, redirect to home
                 router.replace("/");
-            } else if (!isSignedIn) {
+            } else {
+                // Not logged in
                 router.replace("/");
             }
         }
-    }, [isLoaded, isSignedIn, user, router]);
+    }, [status, session, router]);
 
     return (
         <div className="flex items-center justify-center min-h-screen">

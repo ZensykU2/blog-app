@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Heart, Bookmark, Share2 } from "lucide-react";
 import { api } from "~/trpc/react";
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { getQueryKey } from "@trpc/react-query";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,7 +21,7 @@ export function PostInteractions({
     isLiked: initialIsLiked,
     isBookmarked: initialIsBookmarked,
 }: PostInteractionsProps) {
-    const { isSignedIn } = useUser();
+    const { data: session } = useSession();
     const queryClient = useQueryClient();
     const [likes, setLikes] = useState(initialLikes);
     const [isLiked, setIsLiked] = useState(initialIsLiked);
@@ -37,7 +37,7 @@ export function PostInteractions({
 
     const toggleLike = api.interaction.togglePostLike.useMutation({
         onMutate: async () => {
-            if (!isSignedIn) {
+            if (!session?.user) {
                 toast.error("Please sign in to like posts");
                 return;
             }
@@ -107,7 +107,7 @@ export function PostInteractions({
 
     const toggleBookmark = api.interaction.togglePostBookmark.useMutation({
         onMutate: async () => {
-            if (!isSignedIn) {
+            if (!session?.user) {
                 toast.error("Please sign in to bookmark posts");
                 return;
             }

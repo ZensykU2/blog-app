@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import {
     BookOpen,
@@ -9,7 +9,6 @@ import {
     Heart,
     Bookmark,
     User as UserIcon,
-    Loader2
 } from "lucide-react";
 
 import { ProfileHeader } from "../../_components/ProfileHeader";
@@ -22,16 +21,17 @@ type TabType = "posts" | "comments" | "liked" | "bookmarked";
 export default function UserProfilePage() {
     const params = useParams();
     const username = params.username as string;
-    const { user: currentUser, isLoaded: isUserLoaded } = useUser();
+    const { data: session, status: sessionStatus } = useSession();
+    const isSessionLoaded = sessionStatus !== "loading";
     const [activeTab, setActiveTab] = useState<TabType>("posts");
 
     const { data: profileUser, isLoading: isProfileLoading } = api.user.getProfile.useQuery({
         username
     });
 
-    const isOwner = isUserLoaded && currentUser?.username === username;
+    const isOwner = isSessionLoaded && session?.user && profileUser?.id === session.user.id;
 
-    if (isProfileLoading || !isUserLoaded) {
+    if (isProfileLoading || !isSessionLoaded) {
         return (
             <main className="container mx-auto px-4 py-8">
                 <div className="h-64 glass-panel rounded-2xl animate-pulse mb-8" />
@@ -96,7 +96,7 @@ export default function UserProfilePage() {
                                 {isOwner ? "My Stories" : `${profileUser.displayName ?? profileUser.username}'s Stories`}
                             </h2>
                         </div>
-                        <PostGrid type="user" userId={profileUser.clerkId} />
+                        <PostGrid type="user" userId={profileUser.id} />
                     </div>
                 )}
 
@@ -106,7 +106,7 @@ export default function UserProfilePage() {
                             <MessageSquare className="text-purple-400" size={24} />
                             <h2 className="text-2xl font-black text-white">Comment History</h2>
                         </div>
-                        <UserComments userId={profileUser.clerkId} />
+                        <UserComments userId={profileUser.id} />
                     </div>
                 )}
 
@@ -116,7 +116,7 @@ export default function UserProfilePage() {
                             <Heart className="text-pink-400" size={24} />
                             <h2 className="text-2xl font-black text-white">Liked Posts</h2>
                         </div>
-                        <PostGrid type="liked" userId={profileUser.clerkId} />
+                        <PostGrid type="liked" userId={profileUser.id} />
                     </div>
                 )}
 
@@ -126,7 +126,7 @@ export default function UserProfilePage() {
                             <Bookmark className="text-yellow-400" size={24} />
                             <h2 className="text-2xl font-black text-white">Saved for Later</h2>
                         </div>
-                        <PostGrid type="bookmarked" userId={profileUser.clerkId} />
+                        <PostGrid type="bookmarked" userId={profileUser.id} />
                     </div>
                 )}
             </div>

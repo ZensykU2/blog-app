@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Edit2, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "~/server/auth";
 
 import { api } from "~/trpc/server";
 import { decodeId, encodeId } from "~/lib/ids";
@@ -18,7 +18,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function PostPage({ params }: PostPageProps) {
   const { id } = await params;
-  const { userId } = await auth();
+  const session = await auth();
+  const userId = session?.user?.id;
 
   const postId = decodeId(id);
 
@@ -70,9 +71,9 @@ export default async function PostPage({ params }: PostPageProps) {
                 href={post.author?.username ? `/profile/${post.author.username}` : "#"}
                 className="transition-transform hover:scale-110"
               >
-                {post.author?.profileImage ? (
+                {(post.author?.profileImage ?? post.author?.image) ? (
                   <Image
-                    src={post.author.profileImage}
+                    src={(post.author.profileImage ?? post.author?.image)!}
                     alt={getAuthorName()}
                     width={40}
                     height={40}
