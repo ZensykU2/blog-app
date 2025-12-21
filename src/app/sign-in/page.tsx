@@ -38,7 +38,7 @@ export default function SignInPage() {
                 router.push(callbackUrl);
                 router.refresh();
             }
-        } catch (error) {
+        } catch {
             toast.error("Something went wrong");
         } finally {
             setIsLoading(false);
@@ -46,7 +46,7 @@ export default function SignInPage() {
     };
 
     const handleGoogleSignIn = () => {
-        signIn("google", { callbackUrl });
+        void signIn("google", { callbackUrl });
     };
 
     return (
@@ -131,7 +131,7 @@ export default function SignInPage() {
 
                     {/* Sign Up Link */}
                     <p className="text-center text-slate-400 mt-6">
-                        Don't have an account?{" "}
+                        Don&apos;t have an account?{" "}
                         <Link href="/sign-up" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
                             Sign up
                         </Link>

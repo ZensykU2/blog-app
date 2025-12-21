@@ -10,6 +10,9 @@ import { toast } from "react-hot-toast";
 export default function SignUpPage() {
     const router = useRouter();
 
+    interface RegisterResponse {
+        error?: string;
+    }
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -55,10 +58,10 @@ export default function SignUpPage() {
                 }),
             });
 
-            const data = await response.json();
+            const data = (await response.json()) as RegisterResponse;
 
             if (!response.ok) {
-                toast.error(data.error || "Something went wrong");
+                toast.error(data.error ?? "Something went wrong");
                 return;
             }
 
@@ -78,7 +81,7 @@ export default function SignUpPage() {
                 router.push("/");
                 router.refresh();
             }
-        } catch (error) {
+        } catch {
             toast.error("Something went wrong");
         } finally {
             setIsLoading(false);
@@ -86,7 +89,7 @@ export default function SignUpPage() {
     };
 
     const handleGoogleSignUp = () => {
-        signIn("google", { callbackUrl: "/" });
+        void signIn("google", { callbackUrl: "/" });
     };
 
     return (

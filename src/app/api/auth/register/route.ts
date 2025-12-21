@@ -4,9 +4,16 @@ import { eq } from "drizzle-orm";
 import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
 
+interface RegisterBody {
+    email?: string;
+    password?: string;
+    username?: string;
+    displayName?: string;
+}
+
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
+        const body = (await request.json()) as RegisterBody;
         const { email, password, username, displayName } = body;
 
         if (!email || !password || !username) {
@@ -16,7 +23,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return NextResponse.json(
@@ -25,7 +31,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Validate password length
         if (password.length < 8) {
             return NextResponse.json(
                 { error: "Password must be at least 8 characters" },
@@ -33,7 +38,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Validate username format
         const usernameRegex = /^[a-zA-Z0-9_]+$/;
         if (!usernameRegex.test(username) || username.length < 3) {
             return NextResponse.json(
@@ -42,7 +46,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if email already exists
         const existingEmail = await db
             .select()
             .from(users)
@@ -57,7 +60,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if username already exists
         const existingUsername = await db
             .select()
             .from(users)
@@ -72,19 +74,15 @@ export async function POST(request: Request) {
             );
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
-
-        // Generate unique ID
         const userId = crypto.randomUUID();
 
-        // Create user
         await db.insert(users).values({
             id: userId,
             email,
             password: hashedPassword,
             username,
-            displayName: displayName || username,
+            displayName: displayName ?? username,
             role: "user",
             isVerified: false,
         });

@@ -4,6 +4,11 @@ import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
 import { auth } from "~/server/auth";
 
+interface ProfileUpdateBody {
+    displayName?: string;
+    profileImage?: string;
+}
+
 export async function POST(request: Request) {
     try {
         const session = await auth();
@@ -15,10 +20,9 @@ export async function POST(request: Request) {
             );
         }
 
-        const body = await request.json();
+        const body = (await request.json()) as ProfileUpdateBody;
         const { displayName, profileImage } = body;
 
-        // Update user profile
         await db
             .update(users)
             .set({

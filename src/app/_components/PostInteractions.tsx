@@ -5,8 +5,35 @@ import { Heart, Bookmark, Share2 } from "lucide-react";
 import { api } from "~/trpc/react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
-import { getQueryKey } from "@trpc/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+
+interface PostAuthor {
+    id: string | null;
+    displayName: string | null;
+    username: string | null;
+    profileImage: string | null;
+    image: string | null;
+}
+
+interface Post {
+    id: number;
+    title: string;
+    content: string;
+    status: string;
+    authorId: string;
+    createdAt: Date;
+    updatedAt: Date | null;
+    author: PostAuthor | null;
+    likeCount?: number;
+    isLiked?: boolean;
+    isBookmarked?: boolean;
+}
+
+interface PostListCache {
+    posts: Post[];
+}
+
+type PostCache = Post | PostListCache;
 
 interface PostInteractionsProps {
     postId: number;
@@ -44,17 +71,12 @@ export function PostInteractions({
             const newIsLiked = !isLiked;
             const newLikes = newIsLiked ? likes + 1 : likes - 1;
 
-            // Optimistically update local state
             setIsLiked(newIsLiked);
             setLikes(newLikes);
 
-            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
             await utils.post.getById.cancel({ id: postId });
-
-            // Snapshot the previous value
             const previousPost = utils.post.getById.getData({ id: postId });
 
-            // Optimistically update the specific post query
             utils.post.getById.setData({ id: postId }, (old) => {
                 if (!old) return old;
                 return {
@@ -64,45 +86,47 @@ export function PostInteractions({
                 };
             });
 
-            // Optimistically update ALL post list queries (getAll, getByUser, getLikedByUser, getBookmarkedByUser)
-            queryClient.setQueriesData({ queryKey: ["post"] }, (old: any) => {
-                if (!old || typeof old !== "object") return old;
+            queryClient.setQueriesData<PostCache>(
+                { queryKey: ["post"] },
+                (old) => {
+                    if (!old || typeof old !== "object") return old;
 
-                // If it's a paginated post list { posts: [...], ... }
-                if (Array.isArray(old.posts)) {
-                    return {
-                        ...old,
-                        posts: old.posts.map((p: any) =>
-                            p.id === postId ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p
-                        )
-                    };
+                    if ("posts" in old && Array.isArray(old.posts)) {
+                        return {
+                            ...old,
+                            posts: old.posts.map((p) =>
+                                p.id === postId
+                                    ? { ...p, isLiked: newIsLiked, likeCount: newLikes }
+                                    : p
+                            ),
+                        };
+                    }
+
+                    if ("id" in old && old.id === postId) {
+                        return {
+                            ...old,
+                            isLiked: newIsLiked,
+                            likeCount: newLikes,
+                        };
+                    }
+
+                    return old;
                 }
-
-                // If it's a single post object (getById)
-                if (old.id === postId) {
-                    return {
-                        ...old,
-                        isLiked: newIsLiked,
-                        likeCount: newLikes,
-                    };
-                }
-
-                return old;
-            });
+            );
 
             return { previousPost };
         },
         onSuccess: () => {
             void utils.post.invalidate();
         },
-        onError: (err, variables, context) => {
+        onError: (err, _variables, context) => {
             if (context?.previousPost) {
                 utils.post.getById.setData({ id: postId }, context.previousPost);
             }
             setIsLiked(initialIsLiked);
             setLikes(initialLikes);
             toast.error(err.message ?? "Something went wrong");
-        }
+        },
     });
 
     const toggleBookmark = api.interaction.togglePostBookmark.useMutation({
@@ -117,42 +141,46 @@ export function PostInteractions({
             await utils.post.getById.cancel({ id: postId });
             const previousPost = utils.post.getById.getData({ id: postId });
 
-            // Optimistically update ALL post list queries
-            queryClient.setQueriesData({ queryKey: ["post"] }, (old: any) => {
-                if (!old || typeof old !== "object") return old;
+            queryClient.setQueriesData<PostCache>(
+                { queryKey: ["post"] },
+                (old) => {
+                    if (!old || typeof old !== "object") return old;
 
-                if (Array.isArray(old.posts)) {
-                    return {
-                        ...old,
-                        posts: old.posts.map((p: any) =>
-                            p.id === postId ? { ...p, isBookmarked: newIsBookmarked } : p
-                        )
-                    };
+                    if ("posts" in old && Array.isArray(old.posts)) {
+                        return {
+                            ...old,
+                            posts: old.posts.map((p) =>
+                                p.id === postId ? { ...p, isBookmarked: newIsBookmarked } : p
+                            ),
+                        };
+                    }
+
+                    if ("id" in old && old.id === postId) {
+                        return {
+                            ...old,
+                            isBookmarked: newIsBookmarked,
+                        };
+                    }
+
+                    return old;
                 }
-
-                if (old.id === postId) {
-                    return {
-                        ...old,
-                        isBookmarked: newIsBookmarked,
-                    };
-                }
-
-                return old;
-            });
+            );
 
             return { previousPost };
         },
         onSuccess: (data) => {
-            toast.success(data.bookmarked ? "Post saved to bookmarks" : "Removed from bookmarks");
+            toast.success(
+                data.bookmarked ? "Post saved to bookmarks" : "Removed from bookmarks"
+            );
             void utils.post.invalidate();
         },
-        onError: (err, variables, context) => {
+        onError: (err, _variables, context) => {
             if (context?.previousPost) {
                 utils.post.getById.setData({ id: postId }, context.previousPost);
             }
             setIsBookmarked(initialIsBookmarked);
             toast.error(err.message ?? "Something went wrong");
-        }
+        },
     });
 
     const handleShare = () => {
@@ -175,7 +203,9 @@ export function PostInteractions({
                 className={`flex items-center gap-2 transition-all hover:scale-105 cursor-pointer px-4 py-2 rounded-full border ${isBookmarked ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-500" : "bg-white/5 border-white/5 text-slate-400 hover:text-slate-200"}`}
             >
                 <Bookmark size={18} fill={isBookmarked ? "currentColor" : "none"} />
-                <span className="text-sm font-bold">{isBookmarked ? "Saved" : "Save"}</span>
+                <span className="text-sm font-bold">
+                    {isBookmarked ? "Saved" : "Save"}
+                </span>
             </button>
 
             <div className="flex-1" />

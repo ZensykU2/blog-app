@@ -64,7 +64,7 @@ export function UserComments({ userId }: UserCommentsProps) {
                             </Link>
 
                             <p className="text-slate-300 text-sm leading-relaxed bg-black/20 p-4 rounded-lg border border-white/5 italic">
-                                "{comment.content}"
+                                &quot;{comment.content}&quot;
                             </p>
                         </div>
                     </div>

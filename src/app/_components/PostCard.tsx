@@ -9,30 +9,39 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
 import { api } from "~/trpc/react";
-import { getQueryKey } from "@trpc/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { encodeId } from "~/lib/ids";
 
+interface PostAuthor {
+  id: string | null;
+  displayName: string | null;
+  username: string | null;
+  profileImage: string | null;
+  image: string | null;
+}
+
+interface Post {
+  id: number;
+  title: string;
+  content: string;
+  status: string;
+  authorId: string;
+  createdAt: Date;
+  updatedAt: Date | null;
+  author: PostAuthor | null;
+  likeCount?: number;
+  isLiked?: boolean;
+  isBookmarked?: boolean;
+}
+
+interface PostListCache {
+  posts: Post[];
+}
+
+type PostCache = Post | PostListCache;
+
 interface PostCardProps {
-  post: {
-    id: number;
-    title: string;
-    content: string;
-    status: string;
-    authorId: string;
-    createdAt: Date;
-    updatedAt: Date | null;
-    author: {
-      id: string | null;
-      displayName: string | null;
-      username: string | null;
-      profileImage: string | null;
-      image: string | null
-    } | null;
-    likeCount?: number;
-    isLiked?: boolean;
-    isBookmarked?: boolean;
-  };
+  post: Post;
   onDelete?: () => void;
 }
 
@@ -76,7 +85,6 @@ export function PostCard({ post, onDelete }: PostCardProps) {
       setIsLiked(newIsLiked);
       setLikes(newLikes);
 
-      // Also update the individual post cache if it exists
       await utils.post.getById.cancel({ id: post.id });
       const previousPostById = utils.post.getById.getData({ id: post.id });
 
@@ -89,43 +97,47 @@ export function PostCard({ post, onDelete }: PostCardProps) {
         };
       });
 
-      // Optimistically update ALL post list queries
-      queryClient.setQueriesData({ queryKey: ["post"] }, (old: any) => {
-        if (!old || typeof old !== "object") return old;
+      queryClient.setQueriesData<PostCache>(
+        { queryKey: ["post"] },
+        (old) => {
+          if (!old || typeof old !== "object") return old;
 
-        if (Array.isArray(old.posts)) {
-          return {
-            ...old,
-            posts: old.posts.map((p: any) =>
-              p.id === post.id ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p
-            )
-          };
+          if ("posts" in old && Array.isArray(old.posts)) {
+            return {
+              ...old,
+              posts: old.posts.map((p) =>
+                p.id === post.id
+                  ? { ...p, isLiked: newIsLiked, likeCount: newLikes }
+                  : p
+              ),
+            };
+          }
+
+          if ("id" in old && old.id === post.id) {
+            return {
+              ...old,
+              isLiked: newIsLiked,
+              likeCount: newLikes,
+            };
+          }
+
+          return old;
         }
-
-        if (old.id === post.id) {
-          return {
-            ...old,
-            isLiked: newIsLiked,
-            likeCount: newLikes,
-          };
-        }
-
-        return old;
-      });
+      );
 
       return { previousPostById };
     },
     onSuccess: async () => {
       void utils.post.invalidate();
     },
-    onError: (err, variables, context) => {
+    onError: (err, _variables, context) => {
       if (context?.previousPostById) {
         utils.post.getById.setData({ id: post.id }, context.previousPostById);
       }
       setIsLiked(post.isLiked ?? false);
       setLikes(post.likeCount ?? 0);
       toast.error(err.message ?? "Something went wrong");
-    }
+    },
   });
 
   const toggleBookmark = api.interaction.togglePostBookmark.useMutation({
@@ -140,41 +152,45 @@ export function PostCard({ post, onDelete }: PostCardProps) {
       await utils.post.getById.cancel({ id: post.id });
       const previousPostById = utils.post.getById.getData({ id: post.id });
 
-      // Optimistically update ALL post list queries
-      queryClient.setQueriesData({ queryKey: ["post"] }, (old: any) => {
-        if (!old || typeof old !== "object") return old;
+      queryClient.setQueriesData<PostCache>(
+        { queryKey: ["post"] },
+        (old) => {
+          if (!old || typeof old !== "object") return old;
 
-        if (Array.isArray(old.posts)) {
-          return {
-            ...old,
-            posts: old.posts.map((p: any) =>
-              p.id === post.id ? { ...p, isBookmarked: newIsBookmarked } : p
-            )
-          };
+          if ("posts" in old && Array.isArray(old.posts)) {
+            return {
+              ...old,
+              posts: old.posts.map((p) =>
+                p.id === post.id ? { ...p, isBookmarked: newIsBookmarked } : p
+              ),
+            };
+          }
+
+          if ("id" in old && old.id === post.id) {
+            return {
+              ...old,
+              isBookmarked: newIsBookmarked,
+            };
+          }
+
+          return old;
         }
-
-        if (old.id === post.id) {
-          return {
-            ...old,
-            isBookmarked: newIsBookmarked,
-          };
-        }
-
-        return old;
-      });
+      );
 
       return { previousPostById };
     },
     onSuccess: async (data) => {
-      toast.success(data.bookmarked ? "Post saved to bookmarks" : "Removed from bookmarks");
+      toast.success(
+        data.bookmarked ? "Post saved to bookmarks" : "Removed from bookmarks"
+      );
       void utils.post.invalidate();
     },
-    onError: (err, variables, context) => {
+    onError: (_err, _variables, context) => {
       if (context?.previousPostById) {
         utils.post.getById.setData({ id: post.id }, context.previousPostById);
       }
       setIsBookmarked(post.isBookmarked ?? false);
-    }
+    },
   });
 
   const isOwner = session?.user?.id === post.authorId;
@@ -228,11 +244,13 @@ export function PostCard({ post, onDelete }: PostCardProps) {
         <div className="flex flex-col h-full relative z-10">
           <div className="flex items-center gap-3 mb-4">
             <Link
-              href={post.author?.username ? `/profile/${post.author.username}` : "#"}
+              href={
+                post.author?.username ? `/profile/${post.author.username}` : "#"
+              }
               onClick={(e) => e.stopPropagation()}
               className="relative transition-transform hover:scale-110 z-20"
             >
-              {(post.author?.profileImage ?? post.author?.image)? (
+              {post.author?.profileImage ?? post.author?.image ? (
                 <Image
                   src={(post.author?.profileImage ?? post.author?.image)!}
                   alt={getAuthorName()}
@@ -249,21 +267,32 @@ export function PostCard({ post, onDelete }: PostCardProps) {
 
             <div className="flex flex-col">
               <Link
-                href={post.author?.username ? `/profile/${post.author.username}` : "#"}
+                href={
+                  post.author?.username
+                    ? `/profile/${post.author.username}`
+                    : "#"
+                }
                 onClick={(e) => e.stopPropagation()}
                 className="text-sm text-slate-200 font-medium truncate leading-none mb-1 hover:text-purple-400 transition-colors z-20 relative"
               >
                 {getAuthorName()}
               </Link>
               <span className="text-xs text-slate-400">
-                {post.createdAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                {post.createdAt.toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
               </span>
             </div>
           </div>
 
           <div className="mb-4">
             <h3 className="font-bold text-slate-100 text-xl line-clamp-2 leading-tight group-hover:text-purple-300 transition-colors">
-              <Link href={`/post/${encodeId(post.id)}`} className="after:absolute after:inset-0 after:z-10">
+              <Link
+                href={`/post/${encodeId(post.id)}`}
+                className="after:absolute after:inset-0 after:z-10"
+              >
                 {post.title}
               </Link>
             </h3>
@@ -281,7 +310,8 @@ export function PostCard({ post, onDelete }: PostCardProps) {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (!session?.user) return toast.error("Please sign in to like posts");
+                  if (!session?.user)
+                    return toast.error("Please sign in to like posts");
                   toggleLike.mutate({ postId: post.id });
                 }}
                 className={`flex items-center gap-1.5 transition-colors hover:text-pink-400 ${isLiked ? "text-pink-500" : "text-slate-400"}`}
@@ -294,12 +324,16 @@ export function PostCard({ post, onDelete }: PostCardProps) {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (!session?.user) return toast.error("Please sign in to save posts");
+                  if (!session?.user)
+                    return toast.error("Please sign in to save posts");
                   toggleBookmark.mutate({ postId: post.id });
                 }}
                 className={`flex items-center transition-colors hover:text-yellow-400 ${isBookmarked ? "text-yellow-500" : "text-slate-400"}`}
               >
-                <Bookmark size={16} fill={isBookmarked ? "currentColor" : "none"} />
+                <Bookmark
+                  size={16}
+                  fill={isBookmarked ? "currentColor" : "none"}
+                />
               </button>
             </div>
 
