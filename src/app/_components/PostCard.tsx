@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { Edit2, Trash2, User, Heart, Bookmark } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
 import { api } from "~/trpc/react";
@@ -39,6 +39,7 @@ import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 
 export function PostCard({ post, onDelete }: PostCardProps) {
   const { user } = useUser();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [isHovered, setIsHovered] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -192,17 +193,25 @@ export function PostCard({ post, onDelete }: PostCardProps) {
 
         {isOwner && isHovered && (
           <div className="absolute top-4 right-4 flex gap-2 z-20 animate-fade-in">
-            <Link href={`/edit/${encodeId(post.id)}`}>
-              <button className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition backdrop-blur-md border border-white/10 cursor-pointer">
-                <Edit2 size={16} className="text-purple-300" />
-              </button>
-            </Link>
             <button
               onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(`/edit/${encodeId(post.id)}`);
+              }}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition backdrop-blur-md border border-white/10 cursor-pointer"
+              title="Edit post"
+            >
+              <Edit2 size={16} className="text-purple-300" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 setIsModalOpen(true);
               }}
               className="p-2 rounded-full bg-red-500/10 hover:bg-red-500/20 transition backdrop-blur-md border border-white/10 cursor-pointer"
+              title="Delete post"
             >
               <Trash2 size={16} className="text-red-300" />
             </button>
