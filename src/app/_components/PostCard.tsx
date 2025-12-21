@@ -37,9 +37,8 @@ interface PostCardProps {
 
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 
-export function PostCard({ post, onDelete, hideStatus = false }: PostCardProps & { hideStatus?: boolean }) {
+export function PostCard({ post, onDelete }: PostCardProps) {
   const { user } = useUser();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [isHovered, setIsHovered] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -90,11 +89,18 @@ export function PostCard({ post, onDelete, hideStatus = false }: PostCardProps &
 
       // Update ALL feed queries
       const feedKey = getQueryKey(api.post.getAll, undefined, "query");
-      queryClient.setQueriesData({ queryKey: feedKey }, (old: any) => {
+      queryClient.setQueriesData({ queryKey: feedKey }, (old: unknown) => {
         if (!old) return old;
+        const data = old as {
+          posts: Array<{ id: number; isLiked?: boolean; likeCount?: number }>;
+          totalCount: number;
+          hasMore: boolean
+        };
         return {
-          ...old,
-          posts: old.posts.map((p: any) => p.id === post.id ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p)
+          ...data,
+          posts: data.posts.map((p) =>
+            p.id === post.id ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p
+          )
         };
       });
 
@@ -134,11 +140,18 @@ export function PostCard({ post, onDelete, hideStatus = false }: PostCardProps &
 
       // Update ALL feed queries
       const feedKey = getQueryKey(api.post.getAll, undefined, "query");
-      queryClient.setQueriesData({ queryKey: feedKey }, (old: any) => {
+      queryClient.setQueriesData({ queryKey: feedKey }, (old: unknown) => {
         if (!old) return old;
+        const data = old as {
+          posts: Array<{ id: number; isBookmarked?: boolean }>;
+          totalCount: number;
+          hasMore: boolean
+        };
         return {
-          ...old,
-          posts: old.posts.map((p: any) => p.id === post.id ? { ...p, isBookmarked: newIsBookmarked } : p)
+          ...data,
+          posts: data.posts.map((p) =>
+            p.id === post.id ? { ...p, isBookmarked: newIsBookmarked } : p
+          )
         };
       });
 

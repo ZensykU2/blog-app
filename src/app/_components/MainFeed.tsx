@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, FileText } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { PostGrid } from "./PostGrid";
 

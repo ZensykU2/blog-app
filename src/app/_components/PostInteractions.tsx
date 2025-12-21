@@ -68,11 +68,16 @@ export function PostInteractions({
 
             // Optimistically update ALL feed queries (including all pagination pages)
             const feedKey = getQueryKey(api.post.getAll, undefined, "query");
-            queryClient.setQueriesData({ queryKey: feedKey }, (old: any) => {
+            queryClient.setQueriesData({ queryKey: feedKey }, (old: unknown) => {
                 if (!old) return old;
+                const data = old as {
+                    posts: Array<{ id: number; isLiked?: boolean; likeCount?: number }>;
+                    totalCount: number;
+                    hasMore: boolean
+                };
                 return {
-                    ...old,
-                    posts: old.posts.map((p: any) => p.id === postId ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p)
+                    ...data,
+                    posts: data.posts.map((p) => p.id === postId ? { ...p, isLiked: newIsLiked, likeCount: newLikes } : p)
                 };
             });
 
@@ -114,11 +119,16 @@ export function PostInteractions({
 
             // Optimistically update ALL feed queries (including all pagination pages)
             const feedKey = getQueryKey(api.post.getAll, undefined, "query");
-            queryClient.setQueriesData({ queryKey: feedKey }, (old: any) => {
+            queryClient.setQueriesData({ queryKey: feedKey }, (old: unknown) => {
                 if (!old) return old;
+                const data = old as {
+                    posts: Array<{ id: number; isBookmarked?: boolean }>;
+                    totalCount: number;
+                    hasMore: boolean
+                };
                 return {
-                    ...old,
-                    posts: old.posts.map((p: any) => p.id === postId ? { ...p, isBookmarked: newIsBookmarked } : p)
+                    ...data,
+                    posts: data.posts.map((p) => p.id === postId ? { ...p, isBookmarked: newIsBookmarked } : p)
                 };
             });
 
