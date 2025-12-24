@@ -172,8 +172,8 @@ export const commentRouter = createTRPCRouter({
     getForUser: publicProcedure
         .input(z.object({
             userId: z.string().optional(),
-            page: z.number().default(1),
             limit: z.number().default(10),
+            cursor: z.number().nullish(), // cursor is the page number
         }))
         .query(async ({ ctx, input }) => {
             const targetUserId = input.userId ?? ctx.session?.user?.id;
@@ -181,7 +181,8 @@ export const commentRouter = createTRPCRouter({
                 throw new TRPCError({ code: "BAD_REQUEST", message: "User ID is required" });
             }
 
-            const offset = (input.page - 1) * input.limit;
+            const page = input.cursor ?? 1;
+            const offset = (page - 1) * input.limit;
 
             const userComments = await ctx.db
                 .select({
@@ -239,6 +240,9 @@ export const commentRouter = createTRPCRouter({
                 })
             );
 
-            return commentsWithData;
+            return {
+                items: commentsWithData,
+                nextCursor: commentsWithData.length === input.limit ? page + 1 : undefined,
+            };
         }),
 });
