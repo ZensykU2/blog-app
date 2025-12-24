@@ -36,6 +36,7 @@
     "postgres": "^3.4.7",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-easy-crop": "^5.5.6",
     "react-hot-toast": "^2.6.0",
     "react-textarea-autosize": "^8.5.9",
     "server-only": "^0.0.1",
