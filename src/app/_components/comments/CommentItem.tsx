@@ -1,7 +1,14 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { Trash2, User as UserIcon, Edit3, ChevronDown, ChevronUp, Heart } from "lucide-react";
+import {
+    Trash2,
+    User as UserIcon,
+    Edit3,
+    ChevronDown,
+    ChevronUp,
+    Heart,
+} from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -38,7 +45,13 @@ interface CommentItemProps {
     onUpdate: () => void;
 }
 
-export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onUpdate }: CommentItemProps) {
+export function CommentItem({
+    comment,
+    replies = [],
+    postAuthorId,
+    onDelete,
+    onUpdate,
+}: CommentItemProps) {
     const { data: session, status } = useSession();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -52,13 +65,13 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
 
     const toggleLike = api.interaction.toggleCommentLike.useMutation({
         onMutate: () => {
-            if (status !== 'authenticated') {
+            if (status !== "authenticated") {
                 toast.error("Please sign in to like comments");
                 return;
             }
             const newLiked = !isLiked;
             setIsLiked(newLiked);
-            setLikes((prev: number) => newLiked ? prev + 1 : prev - 1);
+            setLikes((prev: number) => (newLiked ? prev + 1 : prev - 1));
         },
         onSuccess: async () => {
             await utils.comment.getByPostId.invalidate({ postId: comment.postId });
@@ -66,59 +79,94 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
         onError: () => {
             setIsLiked(comment.isLiked ?? false);
             setLikes(comment.likeCount ?? 0);
-        }
+        },
     });
 
+    // Regular user deletion
     const deleteComment = api.comment.delete.useMutation({
         onSuccess: () => {
             onDelete();
             setIsDeleting(false);
+            toast.success("Comment deleted");
         },
         onError: () => {
             setIsDeleting(false);
-            alert("Failed to delete comment");
-        }
+            toast.error("Failed to delete comment");
+        },
     });
 
+    // Admin deletion
+    const adminDeleteComment = api.admin.deleteComment.useMutation({
+        onSuccess: () => {
+            onDelete();
+            setIsDeleting(false);
+            toast.success("Comment deleted by admin");
+        },
+        onError: () => {
+            setIsDeleting(false);
+            toast.error("Failed to delete comment");
+        },
+    });
+
+    const isAdmin = session?.user?.role === "admin";
     const isAuthor = session?.user?.id === comment.authorId;
     const isPostAuthor = session?.user?.id === postAuthorId;
-    const canDelete = isAuthor || isPostAuthor;
+
+    // author / post owner / admin can delete
+    const canDelete = isAuthor || isPostAuthor || isAdmin;
     const canEdit = isAuthor;
 
-    const isEdited = comment.updatedAt && comment.updatedAt.getTime() > comment.createdAt.getTime();
+    const isEdited =
+        comment.updatedAt &&
+        comment.updatedAt.getTime() > comment.createdAt.getTime();
 
     const CHAR_LIMIT = 255;
     const isLongComment = comment.content.length > CHAR_LIMIT;
-    const displayContent = (isLongComment && !isExpanded)
-        ? comment.content.slice(0, CHAR_LIMIT) + "..."
-        : comment.content;
+    const displayContent =
+        isLongComment && !isExpanded
+            ? comment.content.slice(0, CHAR_LIMIT) + "..."
+            : comment.content;
 
-    const handleDelete = () => {
-        setShowDeleteModal(true);
-    };
+    const handleDelete = () => setShowDeleteModal(true);
 
     const confirmDelete = () => {
         setIsDeleting(true);
-        deleteComment.mutate({ id: comment.id });
+        if (isAdmin && !isAuthor && !isPostAuthor) {
+            // admin override
+            adminDeleteComment.mutate({ commentId: comment.id });
+        } else {
+            deleteComment.mutate({ id: comment.id });
+        }
         setShowDeleteModal(false);
     };
 
     const getAuthorName = () => {
         if (!comment.author) return "Unknown User";
-        return comment.author.displayName ?? comment.author.username ?? "Unknown User";
+        return (
+            comment.author.displayName ??
+            comment.author.username ??
+            "Unknown User"
+        );
     };
 
     const hasMoreReplies = replies.length > visibleRepliesCount;
     const displayedReplies = replies.slice(0, visibleRepliesCount);
 
     return (
-        <div className={`rounded-xl mb-4 group relative transition-all duration-300 ${comment.parentId ? "bg-transparent mt-4" : "glass-panel p-5 shadow-lg"}`}>
+        <div
+            className={`rounded-xl mb-4 group relative transition-all duration-300 ${comment.parentId ? "bg-transparent mt-4" : "glass-panel p-5 shadow-lg"
+                }`}
+        >
             <div className="flex gap-4">
                 <Link
-                    href={comment.author?.username ? `/profile/${comment.author.username}` : "#"}
+                    href={
+                        comment.author?.username
+                            ? `/profile/${comment.author.username}`
+                            : "#"
+                    }
                     className="flex-shrink-0 transition-transform hover:scale-110"
                 >
-                    {(comment.author?.profileImage ?? comment.author?.image) ? (
+                    {comment.author?.profileImage ?? comment.author?.image ? (
                         <Image
                             src={(comment.author.profileImage ?? comment.author?.image)!}
                             alt={getAuthorName()}
@@ -137,7 +185,11 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
                     <div className="flex items-baseline justify-between mb-1">
                         <div className="flex items-center gap-2">
                             <Link
-                                href={comment.author?.username ? `/profile/${comment.author.username}` : "#"}
+                                href={
+                                    comment.author?.username
+                                        ? `/profile/${comment.author.username}`
+                                        : "#"
+                                }
                                 className="font-semibold text-slate-200 hover:text-purple-400 transition-colors"
                             >
                                 {getAuthorName()}
@@ -153,13 +205,18 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
                                     const diff = now.getTime() - comment.createdAt.getTime();
                                     const oneDay = 24 * 60 * 60 * 1000;
                                     if (diff < oneDay) {
-                                        return comment.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                        return comment.createdAt.toLocaleTimeString([], {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                        });
                                     }
                                     return comment.createdAt.toLocaleDateString();
                                 })()}
                             </span>
                             {isEdited && (
-                                <span className="text-[10px] text-slate-500 italic">(edited)</span>
+                                <span className="text-[10px] text-slate-500 italic">
+                                    (edited)
+                                </span>
                             )}
                         </div>
                     </div>
@@ -191,9 +248,13 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
                                         className="mt-1 text-xs font-bold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 cursor-pointer p-0 border-none bg-transparent"
                                     >
                                         {isExpanded ? (
-                                            <>Show Less <ChevronUp size={14} /></>
+                                            <>
+                                                Show Less <ChevronUp size={14} />
+                                            </>
                                         ) : (
-                                            <>Read More <ChevronDown size={14} /></>
+                                            <>
+                                                Read More <ChevronDown size={14} />
+                                            </>
                                         )}
                                     </button>
                                 )}
@@ -201,14 +262,20 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
 
                             <div className="flex items-center justify-start gap-4">
                                 <button
-                                    onClick={() => toggleLike.mutate({ commentId: comment.id })}
-                                    className={`flex items-center gap-1.5 transition-colors hover:text-pink-400 ${isLiked ? "text-pink-500" : "text-slate-500"}`}
+                                    onClick={() =>
+                                        toggleLike.mutate({ commentId: comment.id })
+                                    }
+                                    className={`flex items-center gap-1.5 transition-colors hover:text-pink-400 ${isLiked ? "text-pink-500" : "text-slate-500"
+                                        }`}
                                 >
-                                    <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
+                                    <Heart
+                                        size={14}
+                                        fill={isLiked ? "currentColor" : "none"}
+                                    />
                                     <span className="text-xs font-bold">{likes}</span>
                                 </button>
 
-                                {status === 'authenticated' && (
+                                {status === "authenticated" && (
                                     <button
                                         onClick={() => setIsReplying(!isReplying)}
                                         className="text-xs font-bold text-slate-500 hover:text-purple-400 transition-colors cursor-pointer p-0 border-none bg-transparent"
@@ -248,10 +315,13 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
                                     <div className="flex gap-3 items-center mt-4 pt-2">
                                         {hasMoreReplies && (
                                             <button
-                                                onClick={() => setVisibleRepliesCount(prev => prev + 5)}
+                                                onClick={() =>
+                                                    setVisibleRepliesCount((prev) => prev + 5)
+                                                }
                                                 className="text-[11px] font-bold text-purple-400 hover:text-white transition-all cursor-pointer bg-purple-500/10 hover:bg-purple-500/20 px-4 py-2 rounded-lg border border-purple-500/20"
                                             >
-                                                Read Thread ({replies.length - visibleRepliesCount} more)
+                                                Read Thread (
+                                                {replies.length - visibleRepliesCount} more)
                                             </button>
                                         )}
                                         {visibleRepliesCount > 5 && (
@@ -269,7 +339,7 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
                     )}
                 </div>
 
-                {!isEditing && (
+                {!isEditing && canDelete && (
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 absolute top-5 right-5">
                         {canEdit && (
                             <button
@@ -280,20 +350,18 @@ export function CommentItem({ comment, replies = [], postAuthorId, onDelete, onU
                                 <Edit3 size={16} />
                             </button>
                         )}
-                        {canDelete && (
-                            <button
-                                onClick={handleDelete}
-                                disabled={isDeleting}
-                                className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
-                                title="Delete comment"
-                            >
-                                {isDeleting ? (
-                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <Trash2 size={16} />
-                                )}
-                            </button>
-                        )}
+                        <button
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+                            title="Delete comment"
+                        >
+                            {isDeleting ? (
+                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <Trash2 size={16} />
+                            )}
+                        </button>
                     </div>
                 )}
             </div>
