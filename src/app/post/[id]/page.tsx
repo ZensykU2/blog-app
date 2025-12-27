@@ -6,9 +6,9 @@ import { auth } from "~/server/auth";
 
 import { api } from "~/trpc/server";
 import { decodeId, encodeId } from "~/lib/ids";
-import { DeletePostButton } from "../../_components/DeletePostButton";
+import { DeletePostButton } from "../../_components/Posts/DeletePostButton";
 import { CommentList } from "../../_components/comments/CommentList";
-import { PostInteractions } from "../../_components/PostInteractions";
+import { PostInteractions } from "../../_components/Posts/PostInteractions";
 
 interface PostPageProps {
   params: Promise<{ id: string }>;

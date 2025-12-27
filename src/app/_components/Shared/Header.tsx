@@ -3,6 +3,7 @@
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { UserMenu } from "./UserMenu";
+import { Button } from "./Button";
 
 export function Header() {
     const { data: session, status } = useSession();
@@ -29,7 +30,7 @@ export function Header() {
                                 <>
                                     {session.user.role === "admin" && (
                                         <Link href="/admin">
-                                            <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:shadow-amber-500/40 hover:scale-105 active:scale-95">
+                                            <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:shadow-amber-500/40 hover:scale-105 active:scale-95 cursor-pointer">
                                                 <span className="relative z-10">Admin</span>
                                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:animate-[shimmer_1s_infinite]" />
                                             </button>
@@ -37,7 +38,7 @@ export function Header() {
                                     )}
 
                                     <Link href="/create">
-                                        <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 active:scale-95">
+                                        <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 active:scale-95 cursor-pointer">
                                             <span className="relative z-10">New Post</span>
                                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:animate-[shimmer_1s_infinite]" />
                                         </button>
@@ -47,21 +48,21 @@ export function Header() {
                                 </>
                             ) : (
                                 <>
-                                    <button
+                                    <Button
                                         onClick={() => signIn("google")}
-                                        className="glass-button rounded-full px-6 py-2 text-sm font-medium text-slate-200 cursor-pointer"
+                                        variant="glass"
+                                        className="rounded-full"
                                     >
                                         Sign In
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         onClick={() => signIn("google")}
-                                        className="group relative rounded-full bg-white text-slate-900 px-6 py-2 text-sm font-bold transition-all hover:bg-slate-200 cursor-pointer"
+                                        variant="secondary"
+                                        className="rounded-full"
+                                        rightIcon={<span className="inline-block transition-transform group-hover:translate-x-1">→</span>}
                                     >
                                         Get Started
-                                        <span className="ml-2 inline-block transition-transform group-hover:translate-x-1">
-                                            →
-                                        </span>
-                                    </button>
+                                    </Button>
                                 </>
                             )}
                         </>

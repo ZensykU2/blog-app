@@ -3,7 +3,7 @@ import { auth } from "~/server/auth";
 
 import { api } from "~/trpc/server";
 import { decodeId } from "~/lib/ids";
-import { PostEditForm } from "../../_components/PostEditForm";
+import { PostEditForm } from "../../_components/Posts/PostEditForm";
 
 interface EditPostPageProps {
   params: Promise<{ id: string }>;

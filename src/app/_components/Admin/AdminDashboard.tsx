@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "~/trpc/react";
 import { toast } from "react-hot-toast";
 import { Trash2, Users, FileText, MessageSquare } from "lucide-react";
+import { DeleteConfirmationModal } from "../Shared/DeleteConfirmationModal";
 
 export default function AdminDashboard() {
     const utils = api.useUtils();
@@ -27,7 +28,7 @@ export default function AdminDashboard() {
         onError: (err) => toast.error(err.message),
     });
 
-    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+    const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
     return (
         <main className="min-h-screen p-8 max-w-6xl mx-auto">
@@ -129,37 +130,14 @@ export default function AdminDashboard() {
                                         </select>
                                     </td>
                                     <td className="p-4 text-right">
-                                        {confirmDelete === user.id ? (
-                                            <div className="flex gap-2 justify-end">
-                                                <button
-                                                    onClick={() =>
-                                                        deleteUser.mutate({
-                                                            userId: user.id,
-                                                        })
-                                                    }
-                                                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg"
-                                                >
-                                                    Confirm
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        setConfirmDelete(null)
-                                                    }
-                                                    className="px-3 py-1 bg-white/10 text-white text-sm rounded-lg"
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={() =>
-                                                    setConfirmDelete(user.id)
-                                                }
-                                                className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() =>
+                                                setUserToDelete(user.id)
+                                            }
+                                            className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors cursor-pointer"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
@@ -167,6 +145,20 @@ export default function AdminDashboard() {
                     </table>
                 )}
             </div>
+
+            <DeleteConfirmationModal
+                isOpen={!!userToDelete}
+                onClose={() => setUserToDelete(null)}
+                onConfirm={() => {
+                    if (userToDelete) {
+                        deleteUser.mutate({ userId: userToDelete });
+                        setUserToDelete(null);
+                    }
+                }}
+                isDeleting={deleteUser.isPending}
+                title="Delete User"
+                description="Are you sure you want to delete this user? This action cannot be undone."
+            />
         </main>
     );
 }

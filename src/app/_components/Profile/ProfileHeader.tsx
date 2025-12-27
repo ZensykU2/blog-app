@@ -231,7 +231,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                                         />
                                         <button
                                             onClick={handleSaveProfile}
-                                            className="p-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors"
+                                            className="p-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors cursor-pointer"
                                         >
                                             <Check size={18} />
                                         </button>
@@ -242,7 +242,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                                                 );
                                                 setIsEditingProfile(false);
                                             }}
-                                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 transition-colors"
+                                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 transition-colors cursor-pointer"
                                         >
                                             <X size={18} />
                                         </button>
@@ -260,7 +260,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                             {isOwner && !isEditingProfile && (
                                 <button
                                     onClick={() => setIsEditingProfile(true)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors border border-white/10"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors border border-white/10 cursor-pointer"
                                 >
                                     <Settings size={16} />
                                     <span className="text-sm font-medium">
@@ -286,14 +286,14 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                                                 setBio(dbUser?.bio ?? "");
                                                 setIsEditingBio(false);
                                             }}
-                                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 transition-colors"
+                                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 transition-colors cursor-pointer"
                                         >
                                             <X size={18} />
                                         </button>
                                         <button
                                             onClick={handleSaveBio}
                                             disabled={updateBio.isPending}
-                                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500 text-white font-bold hover:bg-purple-600 transition-colors disabled:opacity-50"
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500 text-white font-bold hover:bg-purple-600 transition-colors disabled:opacity-50 cursor-pointer"
                                         >
                                             {updateBio.isPending ? (
                                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

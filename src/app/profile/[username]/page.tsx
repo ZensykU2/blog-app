@@ -11,9 +11,9 @@ import {
     User as UserIcon,
 } from "lucide-react";
 
-import { ProfileHeader } from "../../_components/ProfileHeader";
-import { PostGrid } from "../../_components/PostGrid";
-import { UserComments } from "../../_components/UserComments";
+import { ProfileHeader } from "../../_components/Profile/ProfileHeader";
+import { PostGrid } from "../../_components/Posts/PostGrid";
+import { UserComments } from "../../_components/Profile/UserComments";
 import { api } from "~/trpc/react";
 
 type TabType = "posts" | "comments" | "liked" | "bookmarked";
