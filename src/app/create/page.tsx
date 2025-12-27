@@ -1,7 +1,7 @@
 import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
 
-import { PostEditor } from "../../app/_components/PostEditor";
+import { PostEditor } from "../../app/_components/Posts/PostEditor";
 
 export default async function CreatePost() {
   const session = await auth();

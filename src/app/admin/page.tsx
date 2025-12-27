@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "~/server/auth";
-import AdminDashboard from "../_components/AdminDashboard";
+import AdminDashboard from "../_components/Admin/AdminDashboard";
 
 export default async function AdminPage() {
     const session = await auth();

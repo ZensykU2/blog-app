@@ -38,7 +38,7 @@ export function UserMenu() {
         <div className="relative pl-2 border-l border-white/10" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 group focus:outline-none"
+                className="flex items-center gap-2 group focus:outline-none cursor-pointer"
             >
                 <div className="h-9 w-9 rounded-full ring-2 ring-white/10 transition-all group-hover:ring-purple-500/50 overflow-hidden relative">
                     {profileImage ? (
@@ -82,7 +82,7 @@ export function UserMenu() {
                     <div className="p-1.5 border-t border-white/5 bg-slate-950/30">
                         <button
                             onClick={() => signOut()}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors group"
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors group cursor-pointer"
                         >
                             <LogOut size={16} className="text-red-500/60 group-hover:text-red-400 transition-colors" />
                             Sign Out

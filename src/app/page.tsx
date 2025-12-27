@@ -1,7 +1,7 @@
 import { auth } from "~/server/auth";
 
-import { WelcomePage } from "~/app/_components/WelcomePage";
-import { MainFeed } from "~/app/_components/MainFeed";
+import { WelcomePage } from "~/app/_components/Shared/WelcomePage";
+import { MainFeed } from "~/app/_components/Posts/MainFeed";
 import { HydrateClient } from "~/trpc/server";
 
 export const dynamic = 'force-dynamic';
