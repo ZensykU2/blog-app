@@ -55,7 +55,7 @@ export function Modal({
             <div className={`glass-panel relative w-full max-w-md overflow-hidden rounded-2xl shadow-2xl transition-all duration-300 transform ${isOpen ? "scale-100 translate-y-0" : "scale-95 translate-y-4"}`}>
 
                 {/* Header (optional) */}
-                {(title || showCloseButton) && (
+                {(!!title || showCloseButton) && (
                     <div className="flex items-start justify-between p-6 pb-0">
                         <div>
                             {title && <h3 className="text-xl font-bold text-white leading-none">{title}</h3>}

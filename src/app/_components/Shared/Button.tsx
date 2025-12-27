@@ -41,7 +41,7 @@ export function Button({
     return (
         <button
             className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
-            disabled={disabled || isLoading}
+            disabled={isLoading || (disabled ?? false)}
             {...props}
         >
             {isLoading && <Loader2 className="animate-spin" size={size === "lg" ? 20 : 16} />}
