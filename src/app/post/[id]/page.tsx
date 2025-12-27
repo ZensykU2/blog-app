@@ -125,6 +125,17 @@ export default async function PostPage({ params }: PostPageProps) {
             {post.title}
           </h1>
 
+          {/* Tags */}
+          {post.tags && post.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-8 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+              {post.tags.map(tag => (
+                <span key={tag.id} className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-sm font-medium hover:bg-purple-500/20 transition-colors cursor-default">
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="h-1 w-20 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"></div>
         </header>
 

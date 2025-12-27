@@ -7,12 +7,14 @@ import Link from "next/link";
 import { encodeId } from "~/lib/ids";
 
 import { api } from "~/trpc/react";
+import { TagSelector } from "~/app/_components/Shared/TagSelector";
 
 export function PostEditor() {
   const router = useRouter();
   const utils = api.useUtils();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [selectedTags, setSelectedTags] = useState<number[]>([]);
 
   const createPost = api.post.create.useMutation({
     onSuccess: (data) => {
@@ -28,7 +30,7 @@ export function PostEditor() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim() && content.trim()) {
-      createPost.mutate({ title, content });
+      createPost.mutate({ title, content, tags: selectedTags });
     }
   };
 
@@ -67,6 +69,14 @@ export function PostEditor() {
             maxLength={255}
             autoFocus
             spellCheck={false}
+          />
+        </div>
+
+        <div>
+          <TagSelector
+            selectedTagIds={selectedTags}
+            onChange={setSelectedTags}
+            maxTags={5}
           />
         </div>
 

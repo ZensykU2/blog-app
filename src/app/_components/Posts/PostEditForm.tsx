@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 
 import { api } from "~/trpc/react";
 import { encodeId } from "~/lib/ids";
+import { TagSelector } from "../Shared/TagSelector";
 
 interface PostEditFormProps {
   post: {
@@ -25,6 +26,7 @@ interface PostEditFormProps {
       profileImage: string | null;
       image: string | null;
     } | null;
+    tags?: { id: number; name: string; slug: string }[];
   };
 }
 
@@ -32,6 +34,7 @@ export function PostEditForm({ post }: PostEditFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState(post.title);
   const [content, setContent] = useState(post.content);
+  const [selectedTags, setSelectedTags] = useState<number[]>(post.tags?.map(t => t.id) ?? []);
 
   const updatePost = api.post.update.useMutation({
     onSuccess: (data) => {
@@ -54,6 +57,7 @@ export function PostEditForm({ post }: PostEditFormProps) {
         id: post.id,
         title: title.trim(),
         content: content.trim(),
+        tags: selectedTags,
       });
     }
   };
@@ -96,6 +100,14 @@ export function PostEditForm({ post }: PostEditFormProps) {
             className="w-full bg-transparent text-5xl md:text-6xl font-black placeholder-white/20 border-none outline-none resize-none tracking-tight pb-4 border-b border-transparent group-focus-within:border-white/10 transition-colors"
             maxLength={255}
             spellCheck={false}
+          />
+        </div>
+
+        <div>
+          <TagSelector
+            selectedTagIds={selectedTags}
+            onChange={setSelectedTags}
+            maxTags={5}
           />
         </div>
 

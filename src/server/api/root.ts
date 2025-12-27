@@ -10,12 +10,20 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  *
  * All routers added in /api/routers should be manually added here.
  */
+import { tagRouter } from "~/server/api/routers/tag";
+
+/**
+ * This is the primary router for your server.
+ *
+ * All routers added in /api/routers should be manually added here.
+ */
 export const appRouter = createTRPCRouter({
   admin: adminRouter,
   post: postRouter,
   comment: commentRouter,
   interaction: interactionRouter,
   user: userRouter,
+  tag: tagRouter,
 });
 
 // export type definition of API

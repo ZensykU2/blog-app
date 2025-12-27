@@ -33,6 +33,7 @@ interface Post {
   likeCount?: number;
   isLiked?: boolean;
   isBookmarked?: boolean;
+  tags?: { id: number; name: string; slug: string }[];
 }
 
 interface PostListCache {
@@ -298,6 +299,8 @@ export function PostCard({ post, onDelete }: PostCardProps) {
             </div>
           </div>
 
+
+
           {/* Title & Excerpt */}
           <div className="mb-4">
             <h3 className="font-bold text-slate-100 text-xl line-clamp-2 leading-tight group-hover:text-purple-300 transition-colors">
@@ -315,6 +318,20 @@ export function PostCard({ post, onDelete }: PostCardProps) {
               {post.content}
             </p>
           </div>
+
+          {/* Tags */}
+          {post.tags && post.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-3 pt-2">
+              {post.tags.slice(0, 3).map(tag => (
+                <span key={tag.id} className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                  {tag.name}
+                </span>
+              ))}
+              {post.tags.length > 3 && (
+                <span className="text-[10px] text-slate-500">+{post.tags.length - 3}</span>
+              )}
+            </div>
+          )}
 
           {/* Footer: Likes / Bookmarks / Read */}
           <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between relative z-20">
