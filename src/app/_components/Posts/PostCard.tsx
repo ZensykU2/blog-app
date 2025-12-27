@@ -11,7 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { api } from "~/trpc/react";
 import { encodeId } from "~/lib/ids";
-import { DeleteConfirmationModal } from "../Admin/DeleteConfirmationModal";
+import { DeleteConfirmationModal } from "../Shared/DeleteConfirmationModal";
 
 interface PostAuthor {
   id: string | null;

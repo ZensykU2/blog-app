@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 
 import { api } from "~/trpc/react";
-import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { DeleteConfirmationModal } from "../Shared/DeleteConfirmationModal";
 
 interface DeletePostButtonProps {
   postId: number;

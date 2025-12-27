@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "~/trpc/react";
 import { toast } from "react-hot-toast";
 import { Trash2, Users, FileText, MessageSquare } from "lucide-react";
-import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { DeleteConfirmationModal } from "../Shared/DeleteConfirmationModal";
 
 export default function AdminDashboard() {
     const utils = api.useUtils();
