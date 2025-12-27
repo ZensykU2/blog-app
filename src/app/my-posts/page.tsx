@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
 import Link from "next/link";
 
-import { PostGrid } from "~/app/_components/PostGrid";
+import { PostGrid } from "~/app/_components/Posts/PostGrid";
 
 export const dynamic = 'force-dynamic';
 

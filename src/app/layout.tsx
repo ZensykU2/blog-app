@@ -2,8 +2,8 @@ import "~/styles/globals.css";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Toaster } from "react-hot-toast";
-import { Header } from "./_components/Header";
-import { AuthProvider } from "./_components/AuthProvider";
+import { Header } from "./_components/Shared/Header";
+import { AuthProvider } from "./_components/Shared/AuthProvider";
 import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {

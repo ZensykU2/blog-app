@@ -16,7 +16,7 @@ export function MainFeed() {
 
         <div className="flex items-center gap-4">
           <Link href="/create">
-            <button className="flex items-center gap-2 rounded-full bg-white text-slate-900 px-6 py-3 font-bold hover:bg-slate-200 transition-all shadow-lg hover:shadow-white/20 hover:-translate-y-0.5">
+            <button className="flex items-center gap-2 rounded-full bg-white text-slate-900 px-6 py-3 font-bold hover:bg-slate-200 transition-all shadow-lg hover:shadow-white/20 hover:-translate-y-0.5 cursor-pointer">
               <Plus size={20} />
               New Post
             </button>

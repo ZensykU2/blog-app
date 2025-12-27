@@ -6,9 +6,9 @@ import { auth } from "~/server/auth";
 
 import { api } from "~/trpc/server";
 import { decodeId, encodeId } from "~/lib/ids";
-import { DeletePostButton } from "../../_components/DeletePostButton";
+import { DeletePostButton } from "../../_components/Posts/DeletePostButton";
 import { CommentList } from "../../_components/comments/CommentList";
-import { PostInteractions } from "../../_components/PostInteractions";
+import { PostInteractions } from "../../_components/Posts/PostInteractions";
 
 interface PostPageProps {
   params: Promise<{ id: string }>;
@@ -124,6 +124,17 @@ export default async function PostPage({ params }: PostPageProps) {
           <h1 className="text-4xl md:text-5xl font-black text-white mb-6 leading-tight tracking-tight">
             {post.title}
           </h1>
+
+          {/* Tags */}
+          {post.tags && post.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-8 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+              {post.tags.map(tag => (
+                <span key={tag.id} className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-sm font-medium hover:bg-purple-500/20 transition-colors cursor-default">
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="h-1 w-20 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"></div>
         </header>

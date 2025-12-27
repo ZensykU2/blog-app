@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "./Button";
 
 export function WelcomePage() {
   return (
@@ -27,18 +28,25 @@ export function WelcomePage() {
         <div className="flex flex-col sm:flex-row items-center gap-6 mt-8">
           <div className="animate-slide-up [animation-delay:400ms] opacity-0">
             <Link href="/sign-in">
-              <button className="glass-button rounded-full px-8 py-4 text-lg font-semibold text-white min-w-[160px] cursor-pointer">
+              <Button
+                variant="glass"
+                size="lg"
+                className="rounded-full min-w-[160px] text-lg font-semibold"
+              >
                 Sign In
-              </button>
+              </Button>
             </Link>
           </div>
 
           <div className="animate-slide-up [animation-delay:600ms] opacity-0">
             <Link href="/sign-up">
-              <button className="group relative rounded-full bg-white px-8 py-4 text-lg font-bold text-slate-900 transition-all hover:scale-105 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.7)] min-w-[160px] cursor-pointer">
+              <Button
+                variant="secondary"
+                size="lg"
+                className="rounded-full min-w-[160px] text-lg font-bold hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.7)]"
+              >
                 Get Started
-                <span className="absolute inset-0 rounded-full ring-2 ring-white/50 ring-offset-2 ring-offset-slate-900 transition-all group-hover:ring-offset-4"></span>
-              </button>
+              </Button>
             </Link>
           </div>
         </div>

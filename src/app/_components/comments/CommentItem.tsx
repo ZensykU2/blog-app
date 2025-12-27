@@ -14,7 +14,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { api } from "~/trpc/react";
 import { CommentForm } from "./CommentForm";
-import { DeleteConfirmationModal } from "../DeleteConfirmationModal";
+import { DeleteConfirmationModal } from "../Shared/DeleteConfirmationModal";
 import { toast } from "react-hot-toast";
 
 export type CommentWithReplies = {
