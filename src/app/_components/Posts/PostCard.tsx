@@ -1,17 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { Edit2, Trash2, User, Heart, Bookmark } from "lucide-react";
-import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { useQueryClient } from "@tanstack/react-query";
 
 import { api } from "~/trpc/react";
 import { encodeId } from "~/lib/ids";
 import { DeleteConfirmationModal } from "../Shared/DeleteConfirmationModal";
+import { MarkdownRenderer } from "../Shared/MarkdownRenderer";
 
 interface PostAuthor {
   id: string | null;
@@ -24,11 +23,11 @@ interface PostAuthor {
 interface Post {
   id: number;
   title: string;
+  excerpt: string | null;
   content: string;
-  status: string;
-  authorId: string;
+  slug: string;
   createdAt: Date;
-  updatedAt: Date | null;
+  readingTime: number | null;
   author: PostAuthor | null;
   likeCount?: number;
   isLiked?: boolean;
@@ -44,60 +43,17 @@ type PostCache = Post | PostListCache;
 
 interface PostCardProps {
   post: Post;
-  onDelete?: () => void;
+  priority?: boolean;
 }
 
-export function PostCard({ post, onDelete }: PostCardProps) {
+export function PostCard({ post, priority = false }: PostCardProps) {
   const { data: session } = useSession();
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [isHovered, setIsHovered] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const utils = api.useUtils();
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const [isBookmarkAnimating, setIsBookmarkAnimating] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const isAdmin = session?.user?.role === "admin";
-  const isOwner = session?.user?.id === post.authorId;
-
-  // Normal delete (author)
-  const deletePost = api.post.delete.useMutation({
-    onSuccess: async () => {
-      await utils.post.invalidate();
-      onDelete?.();
-      setIsModalOpen(false);
-      toast.success("Post deleted");
-    },
-    onError: (err) => toast.error(err.message ?? "Failed to delete post"),
-  });
-
-  // Admin delete
-  const adminDeletePost = api.admin.deletePost.useMutation({
-    onSuccess: async () => {
-      await utils.post.invalidate();
-      onDelete?.();
-      setIsModalOpen(false);
-      toast.success("Post deleted by admin");
-    },
-    onError: (err) => toast.error(err.message ?? "Failed to delete post"),
-  });
-
-  const handleDelete = () => {
-    if (isAdmin && !isOwner) {
-      adminDeletePost.mutate({ postId: post.id });
-    } else {
-      deletePost.mutate({ id: post.id });
-    }
-  };
-
-  // Likes / Bookmarks setup
-  const [likes, setLikes] = useState(post.likeCount ?? 0);
-  const [isLiked, setIsLiked] = useState(post.isLiked ?? false);
-  const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked ?? false);
-
-  useEffect(() => {
-    setLikes(post.likeCount ?? 0);
-    setIsLiked(post.isLiked ?? false);
-    setIsBookmarked(post.isBookmarked ?? false);
-  }, [post.likeCount, post.isLiked, post.isBookmarked]);
+  const isOwner = session?.user?.id === post.author?.id;
 
   const toggleLike = api.interaction.togglePostLike.useMutation({
     onMutate: async () => {
@@ -105,113 +61,98 @@ export function PostCard({ post, onDelete }: PostCardProps) {
         toast.error("Please sign in to like posts");
         return;
       }
-      const newIsLiked = !isLiked;
-      const newLikes = newIsLiked ? likes + 1 : likes - 1;
+      setIsLikeAnimating(true);
 
-      setIsLiked(newIsLiked);
-      setLikes(newLikes);
+      // Optimistic update
+      await utils.post.getAll.cancel();
 
-      await utils.post.getById.cancel({ id: post.id });
-      const previousPostById = utils.post.getById.getData({ id: post.id });
-
-      utils.post.getById.setData({ id: post.id }, (old) => {
+      utils.post.getAll.setData({ limit: 10 }, (old) => {
         if (!old) return old;
         return {
           ...old,
-          likeCount: newLikes,
-          isLiked: newIsLiked,
+          posts: old.posts.map((p) => {
+            if (p.id === post.id) {
+              return {
+                ...p,
+                isLiked: !p.isLiked,
+                likeCount: (p.likeCount ?? 0) + (p.isLiked ? -1 : 1),
+              };
+            }
+            return p;
+          }),
         };
       });
-
-      queryClient.setQueriesData<PostCache>({ queryKey: ["post"] }, (old) => {
-        if (!old || typeof old !== "object") return old;
-
-        if ("posts" in old && Array.isArray(old.posts)) {
-          return {
-            ...old,
-            posts: old.posts.map((p) =>
-              p.id === post.id
-                ? { ...p, isLiked: newIsLiked, likeCount: newLikes }
-                : p
-            ),
-          };
-        }
-
-        if ("id" in old && old.id === post.id) {
-          return {
-            ...old,
-            isLiked: newIsLiked,
-            likeCount: newLikes,
-          };
-        }
-
-        return old;
-      });
-
-      return { previousPostById };
     },
-    onSuccess: async () => {
-      void utils.post.invalidate();
+    onSettled: () => {
+      setTimeout(() => setIsLikeAnimating(false), 1000);
+      void utils.post.getAll.invalidate();
     },
-    onError: (err, _variables, context) => {
-      if (context?.previousPostById) {
-        utils.post.getById.setData({ id: post.id }, context.previousPostById);
-      }
-      setIsLiked(post.isLiked ?? false);
-      setLikes(post.likeCount ?? 0);
-      toast.error(err.message ?? "Something went wrong");
-    },
+    onError: (err) => {
+      toast.error(err.message);
+    }
   });
 
   const toggleBookmark = api.interaction.togglePostBookmark.useMutation({
     onMutate: async () => {
       if (!session?.user) {
-        toast.error("Please sign in to save posts");
+        toast.error("Please sign in to bookmark posts");
         return;
       }
-      const newIsBookmarked = !isBookmarked;
-      setIsBookmarked(newIsBookmarked);
+      setIsBookmarkAnimating(true);
 
-      await utils.post.getById.cancel({ id: post.id });
-      const previousPostById = utils.post.getById.getData({ id: post.id });
-
-      queryClient.setQueriesData<PostCache>({ queryKey: ["post"] }, (old) => {
-        if (!old || typeof old !== "object") return old;
-
-        if ("posts" in old && Array.isArray(old.posts)) {
-          return {
-            ...old,
-            posts: old.posts.map((p) =>
-              p.id === post.id ? { ...p, isBookmarked: newIsBookmarked } : p
-            ),
-          };
-        }
-
-        if ("id" in old && old.id === post.id) {
-          return {
-            ...old,
-            isBookmarked: newIsBookmarked,
-          };
-        }
-
-        return old;
+      // Optimistic update
+      utils.post.getAll.setData({ limit: 10 }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          posts: old.posts.map((p) => {
+            if (p.id === post.id) {
+              return {
+                ...p,
+                isBookmarked: !p.isBookmarked,
+              };
+            }
+            return p;
+          }),
+        };
       });
-
-      return { previousPostById };
     },
-    onSuccess: async (data) => {
-      toast.success(
-        data.bookmarked ? "Post saved to bookmarks" : "Removed from bookmarks"
-      );
-      void utils.post.invalidate();
+    onSettled: () => {
+      setTimeout(() => setIsBookmarkAnimating(false), 1000);
+      void utils.post.getAll.invalidate();
     },
-    onError: (_err, _variables, context) => {
-      if (context?.previousPostById) {
-        utils.post.getById.setData({ id: post.id }, context.previousPostById);
-      }
-      setIsBookmarked(post.isBookmarked ?? false);
-    },
+    onError: (err) => {
+      toast.error(err.message);
+    }
   });
+
+  const deletePost = api.post.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Post deleted successfully");
+      setShowDeleteModal(false);
+      void utils.post.getAll.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    }
+  });
+
+  const getRelativeTime = (date: Date) => {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    void navigator.clipboard.writeText(`${window.location.origin}/post/${encodeId(post.id)}`);
+    toast.success("Link copied to clipboard!");
+  };
 
   const getAuthorName = () => {
     if (!post.author) return "Unknown Author";
@@ -220,171 +161,166 @@ export function PostCard({ post, onDelete }: PostCardProps) {
     return "Unknown Author";
   };
 
+  const getProfileImage = () => {
+    return post.author?.profileImage ?? post.author?.image ?? null;
+  };
+
   return (
     <>
-      <div
-        className="glass-panel group relative rounded-xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-purple-500/10 hover:border-purple-500/30 flex flex-col h-[320px] overflow-hidden"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div className="absolute top-0 right-0 p-32 bg-purple-500/10 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/20 transition-all duration-700" />
+      <div className="h-full relative block">
+        <article className="group relative flex flex-col h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/10">
+          {/* Entire card link overlay */}
+          <Link
+            href={`/post/${encodeId(post.id)}`}
+            className="absolute inset-0 z-10"
+            aria-label={`Read ${post.title}`}
+          />
 
-        {(isOwner || isAdmin) && isHovered && (
-          <div className="absolute top-4 right-4 flex gap-2 z-20 animate-fade-in">
-            {isOwner && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  router.push(`/edit/${encodeId(post.id)}`);
-                }}
-                className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition backdrop-blur-md border border-white/10 cursor-pointer"
-                title="Edit post"
-              >
-                <Edit2 size={16} className="text-purple-300" />
-              </button>
-            )}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsModalOpen(true);
-              }}
-              className="p-2 rounded-full bg-red-500/10 hover:bg-red-500/20 transition backdrop-blur-md border border-white/10 cursor-pointer"
-              title="Delete post"
-            >
-              <Trash2 size={16} className="text-red-300" />
-            </button>
-          </div>
-        )}
-
-        {/* Content */}
-        <div className="flex flex-col h-full relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <Link
-              href={post.author?.username ? `/profile/${post.author.username}` : "#"}
-              onClick={(e) => e.stopPropagation()}
-              className="relative transition-transform hover:scale-110 z-20"
-            >
-              {post.author?.profileImage ?? post.author?.image ? (
-                <Image
-                  src={(post.author?.profileImage ?? post.author?.image)!}
-                  alt={getAuthorName()}
-                  width={32}
-                  height={32}
-                  className="w-8 h-8 rounded-full ring-2 ring-white/10 object-cover"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-white/5 ring-2 ring-white/10 flex items-center justify-center">
-                  <User size={14} className="text-white/40" />
-                </div>
-              )}
-            </Link>
-
-            <div className="flex flex-col">
+          {/* Top Bar: Author & Date */}
+          <div className="flex items-center justify-between p-4 border-b border-white/5 bg-black/20">
+            <div className="flex items-center gap-3 z-20">
               <Link
                 href={post.author?.username ? `/profile/${post.author.username}` : "#"}
+                className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-white/10 group-hover:ring-purple-500/50 transition-all"
                 onClick={(e) => e.stopPropagation()}
-                className="text-sm text-slate-200 font-medium truncate leading-none mb-1 hover:text-purple-400 transition-colors z-20 relative"
               >
-                {getAuthorName()}
+                {getProfileImage() ? (
+                  <Image
+                    src={getProfileImage()!}
+                    alt={getAuthorName()}
+                    fill
+                    className="object-cover"
+                    sizes="32px"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-purple-500/20 flex items-center justify-center text-purple-200 text-xs font-bold">
+                    {getAuthorName()[0]?.toUpperCase()}
+                  </div>
+                )}
               </Link>
-              <span className="text-xs text-slate-400">
-                {post.createdAt.toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
-            </div>
-          </div>
-
-
-
-          {/* Title & Excerpt */}
-          <div className="mb-4">
-            <h3 className="font-bold text-slate-100 text-xl line-clamp-2 leading-tight group-hover:text-purple-300 transition-colors">
-              <Link
-                href={`/post/${encodeId(post.id)}`}
-                className="after:absolute after:inset-0 after:z-10"
-              >
-                {post.title}
-              </Link>
-            </h3>
-          </div>
-
-          <div className="flex-1 mb-4 overflow-hidden mask-image-b">
-            <p className="text-slate-400 text-sm leading-relaxed line-clamp-4">
-              {post.content}
-            </p>
-          </div>
-
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3 pt-2">
-              {post.tags.slice(0, 3).map(tag => (
-                <span key={tag.id} className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                  {tag.name}
+              <div className="flex flex-col">
+                <Link
+                  href={post.author?.username ? `/profile/${post.author.username}` : "#"}
+                  className="text-sm font-semibold text-slate-200 hover:text-purple-400 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {getAuthorName()}
+                </Link>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  {getRelativeTime(new Date(post.createdAt))}
                 </span>
-              ))}
-              {post.tags.length > 3 && (
-                <span className="text-[10px] text-slate-500">+{post.tags.length - 3}</span>
-              )}
-            </div>
-          )}
-
-          {/* Footer: Likes / Bookmarks / Read */}
-          <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between relative z-20">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (!session?.user)
-                    return toast.error("Please sign in to like posts");
-                  toggleLike.mutate({ postId: post.id });
-                }}
-                className={`flex items-center gap-1.5 transition-colors hover:text-pink-400 ${isLiked ? "text-pink-500" : "text-slate-400"
-                  }`}
-              >
-                <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
-                <span className="text-xs font-bold">{likes}</span>
-              </button>
-
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (!session?.user)
-                    return toast.error("Please sign in to save posts");
-                  toggleBookmark.mutate({ postId: post.id });
-                }}
-                className={`flex items-center transition-colors hover:text-yellow-400 ${isBookmarked ? "text-yellow-500" : "text-slate-400"
-                  }`}
-              >
-                <Bookmark
-                  size={16}
-                  fill={isBookmarked ? "currentColor" : "none"}
-                />
-              </button>
+              </div>
             </div>
 
-            <Link
-              href={`/post/${encodeId(post.id)}`}
-              className="text-xs text-purple-400 font-medium group-hover:translate-x-1 transition-transform hover:text-purple-300"
-            >
-              Read blog →
-            </Link>
+            {/* Admin/Owner Actions */}
+            {isOwner && (
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                <Link href={`/edit/${encodeId(post.id)}`} onClick={(e) => e.stopPropagation()}>
+                  <button className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+                    <Edit2 size={14} />
+                  </button>
+                </Link>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowDeleteModal(true);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+
+          <div className="flex flex-col flex-1 p-5 min-h-0">
+            {/* Title */}
+            <div className="h-[3.5rem] mb-3">
+              <h3 className="text-xl font-bold text-slate-100 line-clamp-2 leading-tight group-hover:text-purple-300 transition-colors">
+                {post.title}
+              </h3>
+            </div>
+
+            {/* Content Preview */}
+            <div className="h-[6rem] mb-4 overflow-hidden mask-image-b min-h-0 relative">
+              <div className="line-clamp-4 text-slate-400 text-sm leading-relaxed pointer-events-none">
+                <MarkdownRenderer content={post.content} variant="sm" />
+              </div>
+            </div>
+
+            {/* Tags */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3 flex-shrink-0 relative z-20">
+                {post.tags.slice(0, 3).map(tag => (
+                  <span key={tag.id} className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                    {tag.name}
+                  </span>
+                ))}
+                {post.tags.length > 3 && (
+                  <span className="text-[10px] text-slate-500">+{post.tags.length - 3}</span>
+                )}
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between text-xs font-medium text-slate-500 relative z-20">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleLike.mutate({ postId: post.id });
+                  }}
+                  className={`flex items-center gap-1.5 transition-colors ${post.isLiked ? "text-pink-500" : "hover:text-pink-400"}`}
+                >
+                  <Heart
+                    size={14}
+                    className={`${isLikeAnimating ? "animate-ping" : ""} ${post.isLiked ? "fill-current" : ""}`}
+                  />
+                  <span>{post.likeCount}</span>
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleBookmark.mutate({ postId: post.id });
+                  }}
+                  className={`transition-colors ${post.isBookmarked ? "text-yellow-400" : "hover:text-yellow-400"}`}
+                >
+                  <Bookmark
+                    size={14}
+                    className={`${isBookmarkAnimating ? "animate-bounce" : ""} ${post.isBookmarked ? "fill-current" : ""}`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span>{Math.max(1, post.readingTime ?? 0)} min read</span>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleShare(e);
+                  }}
+                  className="hover:text-white transition-colors"
+                >
+                  <Share2 size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </article>
       </div>
 
-      {/* Delete confirmation */}
       <DeleteConfirmationModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onConfirm={handleDelete}
-        isDeleting={deletePost.isPending || adminDeletePost.isPending}
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() => deletePost.mutate({ id: post.id })}
+        title="Delete Post"
+        description="Are you sure you want to delete this post? This action cannot be undone."
+        isDeleting={deletePost.isPending}
       />
     </>
   );
