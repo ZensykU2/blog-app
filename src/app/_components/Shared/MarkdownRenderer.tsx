@@ -67,17 +67,18 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
                             />
                         );
                     },
-                    code({ node, className, children, ...props }) {
-                        // @ts-expect-error - inline is passed by react-markdown but not typed in all versions
-                        const isInline = props.inline || (!className && !String(children).includes('\n'));
-                        const match = /language-(\w+)/.exec(className || '');
+                    code({ className, children, ...props }) {
+                        // In react-markdown v9+, inline is no longer passed. We check if it's multiple lines.
+                        const childrenString = typeof children === 'string' ? children : "";
+                        const isInline = !className && !childrenString.includes('\n');
+                        const match = /language-(\w+)/.exec(className ?? '');
 
                         return isInline ? (
-                            <code className={`${className} text-purple-300 font-bold px-1.5 py-0.5 rounded-md bg-white/5 border border-white/5`} {...props}>
+                            <code className={`${className ?? ""} text-purple-300 font-bold px-1.5 py-0.5 rounded-md bg-white/5 border border-white/5`} {...props}>
                                 {children}
                             </code>
                         ) : (
-                            <code className={`${className} text-slate-200`} {...props}>
+                            <code className={`${className ?? ""} text-slate-200`} {...props}>
                                 {children}
                             </code>
                         );

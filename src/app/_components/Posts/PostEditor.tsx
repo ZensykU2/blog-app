@@ -9,6 +9,12 @@ import { toast } from "react-hot-toast";
 import { api } from "~/trpc/react";
 import { BaseEditor } from "./BaseEditor";
 
+interface PostDraft {
+  title: string;
+  content: string;
+  tags: number[];
+}
+
 export function PostEditor() {
   const router = useRouter();
 
@@ -37,9 +43,9 @@ export function PostEditor() {
     const savedDraft = localStorage.getItem("post_draft_new");
     if (savedDraft) {
       try {
-        const parsed = JSON.parse(savedDraft);
-        setTitle(parsed.title || "");
-        setContent(parsed.content || "");
+        const parsed = JSON.parse(savedDraft) as PostDraft;
+        setTitle(parsed.title ?? "");
+        setContent(parsed.content ?? "");
         if (Array.isArray(parsed.tags)) setSelectedTags(parsed.tags);
         toast.success("Draft restored!");
       } catch (e) {

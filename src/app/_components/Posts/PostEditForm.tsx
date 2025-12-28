@@ -35,6 +35,12 @@ interface PostEditFormProps {
   };
 }
 
+interface PostDraft {
+  title: string;
+  content: string;
+  tags: number[];
+}
+
 export function PostEditForm({ post }: PostEditFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState(post.title);
@@ -47,7 +53,7 @@ export function PostEditForm({ post }: PostEditFormProps) {
     const savedDraft = localStorage.getItem(`post_draft_${post.id}`);
     if (savedDraft) {
       try {
-        const parsed = JSON.parse(savedDraft);
+        const parsed = JSON.parse(savedDraft) as PostDraft;
         if (parsed.title) setTitle(parsed.title);
         if (parsed.content) setContent(parsed.content);
         if (Array.isArray(parsed.tags)) setSelectedTags(parsed.tags);

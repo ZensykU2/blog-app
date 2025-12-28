@@ -84,7 +84,7 @@ export function BaseEditor({
 
     const handleMarkdownInsert = (syntax: string, type: 'wrap' | 'block' | 'link' | 'image' = 'wrap') => {
         if (!textareaRef.current) return;
-        const { newText, newCursorPos } = insertMarkdown(textareaRef.current, syntax, type as any);
+        const { newText, newCursorPos } = insertMarkdown(textareaRef.current, syntax, type);
         setContent(newText);
 
         setTimeout(() => {
