@@ -49,6 +49,7 @@ export const users = createTable(
     bio: d.text(),
     profileImage: d.text(),
     role: userRoleEnum().default("user").notNull(),
+    trustScore: d.integer().default(0).notNull(),
     isVerified: d.boolean().default(false).notNull(),
     createdAt: d
       .timestamp({ withTimezone: true })
@@ -186,6 +187,7 @@ export const posts = createTable(
     excerpt: d.text(),
     featuredImage: d.text(),
     readingTime: d.integer(), // in minutes
+    wordCount: d.integer().default(0),
     status: postStatusEnum().default("draft").notNull(),
     isFeatured: d.boolean().default(false).notNull(),
     authorId: d.varchar({ length: 255 }).notNull(),

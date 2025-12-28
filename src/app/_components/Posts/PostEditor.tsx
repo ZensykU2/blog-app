@@ -1,96 +1,104 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { encodeId } from "~/lib/ids";
+import { toast } from "react-hot-toast";
 
 import { api } from "~/trpc/react";
-import { TagSelector } from "~/app/_components/Shared/TagSelector";
+import { BaseEditor } from "./BaseEditor";
+
+interface PostDraft {
+  title: string;
+  content: string;
+  tags: number[];
+}
 
 export function PostEditor() {
   const router = useRouter();
-  const utils = api.useUtils();
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
+  const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
 
   const createPost = api.post.create.useMutation({
     onSuccess: (data) => {
-      void utils.post.invalidate();
+      localStorage.removeItem("post_draft_new"); // Clear draft on success
       if (data?.id) {
         router.push(`/post/${encodeId(data.id)}`);
       } else {
         router.push("/");
       }
+      toast.success("Post created successfully!");
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (title.trim() && content.trim()) {
-      createPost.mutate({ title, content, tags: selectedTags });
+  // Load initial draft
+  useEffect(() => {
+    const savedDraft = localStorage.getItem("post_draft_new");
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft) as PostDraft;
+        setTitle(parsed.title ?? "");
+        setContent(parsed.content ?? "");
+        if (Array.isArray(parsed.tags)) setSelectedTags(parsed.tags);
+        toast.success("Draft restored!");
+      } catch (e) {
+        console.error("Failed to parse draft", e);
+      }
+    }
+    setHasLoadedDraft(true);
+  }, []);
+
+  // Autosave
+  useEffect(() => {
+    if (!hasLoadedDraft || createPost.isPending || createPost.isSuccess) return;
+    const timeout = setTimeout(() => {
+      localStorage.setItem("post_draft_new", JSON.stringify({ title, content, tags: selectedTags }));
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, [title, content, selectedTags, hasLoadedDraft, createPost.isPending, createPost.isSuccess]);
+
+  const handleSubmit = () => {
+    if (title.trim() && content.trim() && !createPost.isPending && !createPost.isSuccess) {
+      const payload = {
+        title: title.trim(),
+        content: content.trim(),
+        tags: selectedTags,
+        wordCount: content.trim().split(/\s+/).length,
+      };
+      createPost.mutate(payload);
     }
   };
 
+  const onDiscardDraft = () => {
+    localStorage.removeItem("post_draft_new");
+  };
+
   return (
-    <div className="max-w-3xl mx-auto pb-20">
-      <div className="flex items-center justify-between mb-12">
-        <Link href="/">
-          <button className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer group">
-            <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-            Back to Feed
-          </button>
-        </Link>
-
-        <button
-          onClick={handleSubmit}
-          disabled={createPost.isPending || !title.trim() || !content.trim()}
-          className="flex items-center gap-2 rounded-full bg-white text-slate-900 px-8 py-3 font-bold hover:bg-slate-200 transition-all shadow-lg hover:shadow-white/20 hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-        >
-          {createPost.isPending ? (
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
-          ) : (
-            <Save size={20} />
-          )}
-          {createPost.isPending ? "Publishing..." : "Publish"}
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="relative group">
-          <input
-            type="text"
-            placeholder="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-transparent text-5xl md:text-6xl font-black placeholder-white/20 border-none outline-none resize-none tracking-tight pb-4 border-b border-transparent group-focus-within:border-white/10 transition-colors"
-            maxLength={255}
-            autoFocus
-            spellCheck={false}
-          />
-        </div>
-
-        <div>
-          <TagSelector
-            selectedTagIds={selectedTags}
-            onChange={setSelectedTags}
-            maxTags={5}
-          />
-        </div>
-
-        <div>
-          <textarea
-            placeholder="Tell your story..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full min-h-[60vh] bg-transparent text-xl text-slate-300 placeholder-white/20 border-none outline-none resize-none leading-relaxed"
-            style={{ fontFamily: 'inherit' }}
-            spellCheck={false}
-          />
-        </div>
-      </form>
-    </div>
+    <BaseEditor
+      title={title}
+      setTitle={setTitle}
+      content={content}
+      setContent={setContent}
+      selectedTags={selectedTags}
+      setSelectedTags={setSelectedTags}
+      onSave={handleSubmit}
+      onBack={() => router.push("/")}
+      isSaving={createPost.isPending || createPost.isSuccess}
+      saveButtonText={createPost.isSuccess ? "Redirecting..." : "Publish"}
+      backButtonText="Back to Feed"
+      draftKey="post_draft_new"
+      hasLoadedDraft={hasLoadedDraft}
+      onDiscardDraft={onDiscardDraft}
+      initialTitle=""
+      initialContent=""
+      initialTags={[]}
+    />
   );
 }

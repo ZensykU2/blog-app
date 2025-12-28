@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ArrowLeft, Edit2, User } from "lucide-react";
+import { ArrowLeft, Edit2, User, Type, Clock } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { auth } from "~/server/auth";
@@ -9,6 +9,7 @@ import { decodeId, encodeId } from "~/lib/ids";
 import { DeletePostButton } from "../../_components/Posts/DeletePostButton";
 import { CommentList } from "../../_components/comments/CommentList";
 import { PostInteractions } from "../../_components/Posts/PostInteractions";
+import { MarkdownRenderer } from "../../_components/Shared/MarkdownRenderer";
 
 interface PostPageProps {
   params: Promise<{ id: string }>;
@@ -38,6 +39,7 @@ export default async function PostPage({ params }: PostPageProps) {
     likeCount: number;
     isLiked: boolean;
     isBookmarked: boolean;
+    tags?: { id: number; name: string; slug: string }[];
   };
 
   const isOwner = userId === post.authorId;
@@ -92,14 +94,22 @@ export default async function PostPage({ params }: PostPageProps) {
                 >
                   {getAuthorName()}
                 </Link>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <span>{post.createdAt.toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
-                  {post.updatedAt && post.updatedAt > post.createdAt && (
-                    <>
-                      <span>•</span>
-                      <span>Updated {post.updatedAt.toLocaleDateString()}</span>
-                    </>
-                  )}
+                <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                  <div className="flex items-center gap-2">
+                    <span>{post.createdAt.toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
+                    {post.updatedAt && post.updatedAt > post.createdAt && (
+                      <>
+                        <span>•</span>
+                        <span>Updated {post.updatedAt.toLocaleDateString()}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                    <span className="flex items-center gap-1">
+                      <Clock size={12} className="text-purple-400" />
+                      {Math.ceil((post.wordCount ?? 0) / 200)} min read
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -125,35 +135,33 @@ export default async function PostPage({ params }: PostPageProps) {
             {post.title}
           </h1>
 
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-8 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-              {post.tags.map(tag => (
-                <span key={tag.id} className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-sm font-medium hover:bg-purple-500/20 transition-colors cursor-default">
+          <div className="h-1 w-20 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full mb-6"></div>
+
+          {postWithInteractions.tags && postWithInteractions.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {postWithInteractions.tags.map(tag => (
+                <span key={tag.id} className="text-xs font-medium px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
                   {tag.name}
                 </span>
               ))}
             </div>
           )}
-
-          <div className="h-1 w-20 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"></div>
         </header>
 
-        <div className="prose prose-invert prose-lg max-w-none prose-headings:font-bold prose-a:text-purple-400 hover:prose-a:text-purple-300 prose-strong:text-white prose-code:text-purple-300 prose-pre:bg-slate-900/50 prose-pre:border prose-pre:border-white/10 relative z-10">
-          <div className="leading-relaxed whitespace-pre-wrap font-sans text-slate-300 mb-12">
-            {post.content}
-          </div>
+        <div className="mb-6">
+          <MarkdownRenderer content={post.content} />
         </div>
 
-        <PostInteractions
-          postId={post.id}
-          initialLikes={postWithInteractions.likeCount}
-          isLiked={postWithInteractions.isLiked}
-          isBookmarked={postWithInteractions.isBookmarked}
-        />
-
-        <CommentList postId={post.id} postAuthorId={post.authorId} />
       </article>
+
+      <PostInteractions
+        postId={post.id}
+        initialLikes={postWithInteractions.likeCount}
+        isLiked={postWithInteractions.isLiked}
+        isBookmarked={postWithInteractions.isBookmarked}
+      />
+
+      <CommentList postId={post.id} postAuthorId={post.authorId} />
     </main>
   );
 }

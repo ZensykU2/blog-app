@@ -3,14 +3,8 @@ import { commentRouter } from "~/server/api/routers/comment";
 import { interactionRouter } from "~/server/api/routers/interaction";
 import { adminRouter } from "~/server/api/routers/admin";
 import { userRouter } from "~/server/api/routers/user";
-import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
-
-/**
- * This is the primary router for your server.
- *
- * All routers added in /api/routers should be manually added here.
- */
 import { tagRouter } from "~/server/api/routers/tag";
+import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
  * This is the primary router for your server.
