@@ -127,7 +127,13 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
             const hasUsernameChanged = pendingUsername !== dbUser.username;
 
             // Only send changed fields to the API
-            const updateBody: any = {};
+            const updateBody: {
+                displayName?: string;
+                username?: string;
+                bio?: string;
+                profileImage?: string;
+                bannerImage?: string;
+            } = {};
             if (pendingDisplayName !== (dbUser.displayName ?? "")) updateBody.displayName = pendingDisplayName;
             if (hasUsernameChanged) updateBody.username = pendingUsername;
             if (pendingBio !== (dbUser.bio ?? "")) updateBody.bio = pendingBio;
@@ -147,8 +153,8 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
             });
 
             if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || "Failed to update profile");
+                const data = (await response.json()) as { error?: string };
+                throw new Error(data.error ?? "Failed to update profile");
             }
 
             toast.success("Profile updated successfully!");
@@ -163,9 +169,24 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                 bannerImage: pendingBanner ?? dbUser.bannerImage,
             };
 
-            utils.user.getProfile.setData({ username: username as string }, updatedProfile as any);
+            utils.user.getProfile.setData({ username: username }, (old) => old ? ({
+                ...old,
+                displayName: pendingDisplayName,
+                username: pendingUsername,
+                bio: pendingBio,
+                profileImage: pendingAvatar ?? old.profileImage,
+                bannerImage: pendingBanner ?? old.bannerImage,
+            }) : undefined);
+
             if (hasUsernameChanged) {
-                utils.user.getProfile.setData({ username: pendingUsername as string }, updatedProfile as any);
+                utils.user.getProfile.setData({ username: pendingUsername }, (old) => old ? ({
+                    ...old,
+                    displayName: pendingDisplayName,
+                    username: pendingUsername,
+                    bio: pendingBio,
+                    profileImage: pendingAvatar ?? old.profileImage,
+                    bannerImage: pendingBanner ?? old.bannerImage,
+                }) : undefined);
             }
 
             if (hasUsernameChanged) {
@@ -184,8 +205,9 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
 
             void utils.user.getCurrentUser.invalidate();
             void utils.post.invalidate();
-        } catch (error: any) {
-            toast.error(error.message || "Failed to update profile");
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to update profile";
+            toast.error(errorMessage);
         } finally {
             setIsSaving(false);
         }
@@ -420,11 +442,10 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
             {/* Lightbox / Preview Overlay */}
             {previewImage && mounted && typeof document !== "undefined" && createPortal(
                 <div
-                    className="fixed inset-0 top-0 left-0 w-screen h-screen z-[999999] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4 md:p-12 animate-fade-in"
-                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+                    className="fixed inset-0 w-screen h-screen z-[999999] bg-black/95 backdrop-blur-3xl flex items-center justify-center animate-fade-in p-4 md:p-12 cursor-pointer"
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }}
+                    onClick={() => setPreviewImage(null)}
                 >
-                    <div className="absolute inset-0 w-full h-full cursor-pointer" onClick={() => setPreviewImage(null)} />
-
                     <button
                         className="absolute top-6 right-6 p-4 text-white/50 hover:text-white transition-all z-[1000001] bg-white/5 hover:bg-white/10 rounded-full border border-white/10 backdrop-blur-md flex items-center justify-center cursor-pointer"
                         onClick={(e) => { e.stopPropagation(); setPreviewImage(null); }}
@@ -432,8 +453,10 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                         <X size={28} />
                     </button>
 
-                    <div className="relative w-full h-full max-w-[95vw] max-h-[90vh] flex items-center justify-center pointer-events-none">
-                        <div className="relative w-full h-full flex items-center justify-center pointer-events-auto">
+                    <div
+                        className="relative w-full h-full max-w-[95vw] max-h-[90vh] flex items-center justify-center pointer-events-none"
+                    >
+                        <div className="relative w-full h-full flex items-center justify-center pointer-events-auto cursor-default" onClick={(e) => e.stopPropagation()}>
                             <Image
                                 src={previewImage}
                                 alt="Preview"
