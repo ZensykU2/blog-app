@@ -57,21 +57,22 @@ export function PostEditor() {
 
   // Autosave
   useEffect(() => {
-    if (!hasLoadedDraft) return;
+    if (!hasLoadedDraft || createPost.isPending || createPost.isSuccess) return;
     const timeout = setTimeout(() => {
       localStorage.setItem("post_draft_new", JSON.stringify({ title, content, tags: selectedTags }));
     }, 1000);
     return () => clearTimeout(timeout);
-  }, [title, content, selectedTags, hasLoadedDraft]);
+  }, [title, content, selectedTags, hasLoadedDraft, createPost.isPending, createPost.isSuccess]);
 
   const handleSubmit = () => {
-    if (title.trim() && content.trim()) {
-      createPost.mutate({
+    if (title.trim() && content.trim() && !createPost.isPending && !createPost.isSuccess) {
+      const payload = {
         title: title.trim(),
         content: content.trim(),
         tags: selectedTags,
         wordCount: content.trim().split(/\s+/).length,
-      });
+      };
+      createPost.mutate(payload);
     }
   };
 
@@ -89,8 +90,8 @@ export function PostEditor() {
       setSelectedTags={setSelectedTags}
       onSave={handleSubmit}
       onBack={() => router.push("/")}
-      isSaving={createPost.isPending}
-      saveButtonText="Publish"
+      isSaving={createPost.isPending || createPost.isSuccess}
+      saveButtonText={createPost.isSuccess ? "Redirecting..." : "Publish"}
       backButtonText="Back to Feed"
       draftKey="post_draft_new"
       hasLoadedDraft={hasLoadedDraft}

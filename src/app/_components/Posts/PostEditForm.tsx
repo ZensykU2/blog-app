@@ -48,6 +48,21 @@ export function PostEditForm({ post }: PostEditFormProps) {
   const [selectedTags, setSelectedTags] = useState<number[]>(post.tags?.map(t => t.id) ?? []);
   const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
 
+  const updatePost = api.post.update.useMutation({
+    onSuccess: (data) => {
+      localStorage.removeItem(`post_draft_${post.id}`);
+      if (data?.id) {
+        router.push(`/post/${encodeId(data.id)}`);
+      } else {
+        router.push("/");
+      }
+      toast.success("Post updated successfully!");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   // Load draft on mount if it exists
   useEffect(() => {
     const savedDraft = localStorage.getItem(`post_draft_${post.id}`);
@@ -67,30 +82,15 @@ export function PostEditForm({ post }: PostEditFormProps) {
 
   // Autosave
   useEffect(() => {
-    if (!hasLoadedDraft) return;
+    if (!hasLoadedDraft || updatePost.isPending || updatePost.isSuccess) return;
     const timeout = setTimeout(() => {
       localStorage.setItem(`post_draft_${post.id}`, JSON.stringify({ title, content, tags: selectedTags }));
     }, 1000);
     return () => clearTimeout(timeout);
-  }, [title, content, selectedTags, post.id, hasLoadedDraft]);
-
-  const updatePost = api.post.update.useMutation({
-    onSuccess: (data) => {
-      localStorage.removeItem(`post_draft_${post.id}`);
-      if (data?.id) {
-        router.push(`/post/${encodeId(data.id)}`);
-      } else {
-        router.push("/");
-      }
-      toast.success("Post updated successfully!");
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  }, [title, content, selectedTags, post.id, hasLoadedDraft, updatePost.isPending, updatePost.isSuccess]);
 
   const handleSubmit = () => {
-    if (title.trim() && content.trim()) {
+    if (title.trim() && content.trim() && !updatePost.isPending && !updatePost.isSuccess) {
       updatePost.mutate({
         id: post.id,
         title: title.trim(),
@@ -115,8 +115,8 @@ export function PostEditForm({ post }: PostEditFormProps) {
       setSelectedTags={setSelectedTags}
       onSave={handleSubmit}
       onBack={() => router.push(`/post/${encodeId(post.id)}`)}
-      isSaving={updatePost.isPending}
-      saveButtonText="Update"
+      isSaving={updatePost.isPending || updatePost.isSuccess}
+      saveButtonText={updatePost.isSuccess ? "Redirecting..." : "Update"}
       backButtonText="Back to Post"
       draftKey={`post_draft_${post.id}`}
       hasLoadedDraft={hasLoadedDraft}

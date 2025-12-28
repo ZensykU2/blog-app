@@ -193,11 +193,16 @@ export const postRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       const readingTime = Math.ceil((input.wordCount ?? 0) / 200);
+      const randomSuffix = Math.random().toString(36).substring(2, 7);
+      const slug = `${input.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')}-${randomSuffix}`;
 
       const [newPost] = await ctx.db.insert(posts).values({
         title: input.title,
         content: input.content,
-        slug: input.title.toLowerCase().replace(/\s+/g, '-'),
+        slug,
         authorId: ctx.auth.userId,
         status: "published",
         wordCount: input.wordCount ?? 0,
