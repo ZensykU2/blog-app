@@ -58,7 +58,8 @@ export function CropperModal({
     imageSrc,
     onClose,
     onCropComplete,
-}: CropperModalProps) {
+    cropShape = "round",
+}: CropperModalProps & { cropShape?: "round" | "rect" }) {
     const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
@@ -119,7 +120,7 @@ export function CropperModal({
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-white/10">
                     <h2 className="text-lg font-bold text-white">
-                        Adjust Profile Picture
+                        {cropShape === 'round' ? 'Adjust Profile Picture' : 'Adjust Image'}
                     </h2>
                     <button
                         onClick={onClose}
@@ -136,8 +137,8 @@ export function CropperModal({
                         crop={crop}
                         zoom={zoom}
                         aspect={1}
-                        cropShape="round"
-                        showGrid={false}
+                        cropShape={cropShape}
+                        showGrid={cropShape === "rect"}
                         onCropChange={onCropChange}
                         onZoomChange={onZoomChange}
                         onCropComplete={onCropAreaComplete}

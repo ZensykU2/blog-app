@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { desc, eq, and, count, inArray } from "drizzle-orm";
+import { desc, eq, and, count } from "drizzle-orm";
 
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { posts, users, postLikes, postBookmarks, postTags, tags } from "~/server/db/schema";
@@ -21,6 +21,8 @@ export const postRouter = createTRPCRouter({
           slug: posts.slug,
           content: posts.content,
           excerpt: posts.excerpt,
+          wordCount: posts.wordCount,
+          readingTime: posts.readingTime,
           status: posts.status,
           authorId: posts.authorId,
           createdAt: posts.createdAt,
@@ -51,17 +53,6 @@ export const postRouter = createTRPCRouter({
             .from(postLikes)
             .where(eq(postLikes.postId, post.id));
 
-          // Get tags
-          const postTagsData = await ctx.db
-            .select({
-              id: tags.id,
-              name: tags.name,
-              slug: tags.slug,
-            })
-            .from(postTags)
-            .innerJoin(tags, eq(postTags.tagId, tags.id))
-            .where(eq(postTags.postId, post.id));
-
           let isLiked = false;
           let isBookmarked = false;
 
@@ -80,6 +71,17 @@ export const postRouter = createTRPCRouter({
               .limit(1);
             isBookmarked = !!bookmark;
           }
+
+          // Get tags
+          const postTagsData = await ctx.db
+            .select({
+              id: tags.id,
+              name: tags.name,
+              slug: tags.slug,
+            })
+            .from(postTags)
+            .innerJoin(tags, eq(postTags.tagId, tags.id))
+            .where(eq(postTags.postId, post.id));
 
           return {
             ...post,
@@ -113,6 +115,8 @@ export const postRouter = createTRPCRouter({
           slug: posts.slug,
           content: posts.content,
           excerpt: posts.excerpt,
+          wordCount: posts.wordCount,
+          readingTime: posts.readingTime,
           status: posts.status,
           authorId: posts.authorId,
           createdAt: posts.createdAt,
@@ -185,14 +189,19 @@ export const postRouter = createTRPCRouter({
       title: z.string().min(1),
       content: z.string().min(1),
       tags: z.array(z.number()).optional(),
+      wordCount: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const readingTime = Math.ceil((input.wordCount ?? 0) / 200);
+
       const [newPost] = await ctx.db.insert(posts).values({
         title: input.title,
         content: input.content,
         slug: input.title.toLowerCase().replace(/\s+/g, '-'),
         authorId: ctx.auth.userId,
         status: "published",
+        wordCount: input.wordCount ?? 0,
+        readingTime,
         createdAt: new Date(),
         updatedAt: new Date(),
       }).returning({ id: posts.id });
@@ -219,14 +228,19 @@ export const postRouter = createTRPCRouter({
       title: z.string().min(1),
       content: z.string().min(1),
       tags: z.array(z.number()).optional(),
+      wordCount: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const readingTime = Math.ceil((input.wordCount ?? 0) / 200);
+
       const [updatedPost] = await ctx.db
         .update(posts)
         .set({
           title: input.title,
           content: input.content,
           slug: input.title.toLowerCase().replace(/\s+/g, '-'),
+          wordCount: input.wordCount ?? 0,
+          readingTime,
           updatedAt: new Date(),
         })
         .where(and(
@@ -281,6 +295,8 @@ export const postRouter = createTRPCRouter({
           slug: posts.slug,
           content: posts.content,
           excerpt: posts.excerpt,
+          wordCount: posts.wordCount,
+          readingTime: posts.readingTime,
           status: posts.status,
           authorId: posts.authorId,
           createdAt: posts.createdAt,
@@ -329,11 +345,23 @@ export const postRouter = createTRPCRouter({
             isBookmarked = !!bookmark;
           }
 
+          // Get tags
+          const postTagsData = await ctx.db
+            .select({
+              id: tags.id,
+              name: tags.name,
+              slug: tags.slug,
+            })
+            .from(postTags)
+            .innerJoin(tags, eq(postTags.tagId, tags.id))
+            .where(eq(postTags.postId, post.id));
+
           return {
             ...post,
             likeCount: likeCountResult?.count ?? 0,
             isLiked,
             isBookmarked,
+            tags: postTagsData,
           };
         })
       );
@@ -387,6 +415,17 @@ export const postRouter = createTRPCRouter({
       .from(postLikes)
       .where(eq(postLikes.postId, targetPost.id));
 
+    // Get tags
+    const postTagsData = await ctx.db
+      .select({
+        id: tags.id,
+        name: tags.name,
+        slug: tags.slug,
+      })
+      .from(postTags)
+      .innerJoin(tags, eq(postTags.tagId, tags.id))
+      .where(eq(postTags.postId, targetPost.id));
+
     let isLiked = false;
     let isBookmarked = false;
 
@@ -411,6 +450,7 @@ export const postRouter = createTRPCRouter({
       likeCount: likeCountResult?.count ?? 0,
       isLiked,
       isBookmarked,
+      tags: postTagsData,
     };
   }),
 
@@ -431,6 +471,8 @@ export const postRouter = createTRPCRouter({
           slug: posts.slug,
           content: posts.content,
           excerpt: posts.excerpt,
+          wordCount: posts.wordCount,
+          readingTime: posts.readingTime,
           status: posts.status,
           authorId: posts.authorId,
           createdAt: posts.createdAt,
@@ -480,11 +522,23 @@ export const postRouter = createTRPCRouter({
             isBookmarked = !!bookmark;
           }
 
+          // Get tags
+          const postTagsData = await ctx.db
+            .select({
+              id: tags.id,
+              name: tags.name,
+              slug: tags.slug,
+            })
+            .from(postTags)
+            .innerJoin(tags, eq(postTags.tagId, tags.id))
+            .where(eq(postTags.postId, post.id));
+
           return {
             ...post,
             likeCount: likeCountResult?.count ?? 0,
             isLiked,
             isBookmarked,
+            tags: postTagsData,
           };
         })
       );
@@ -518,6 +572,8 @@ export const postRouter = createTRPCRouter({
           slug: posts.slug,
           content: posts.content,
           excerpt: posts.excerpt,
+          wordCount: posts.wordCount,
+          readingTime: posts.readingTime,
           status: posts.status,
           authorId: posts.authorId,
           createdAt: posts.createdAt,
@@ -567,11 +623,23 @@ export const postRouter = createTRPCRouter({
             isBookmarked = !!bookmark;
           }
 
+          // Get tags
+          const postTagsData = await ctx.db
+            .select({
+              id: tags.id,
+              name: tags.name,
+              slug: tags.slug,
+            })
+            .from(postTags)
+            .innerJoin(tags, eq(postTags.tagId, tags.id))
+            .where(eq(postTags.postId, post.id));
+
           return {
             ...post,
             likeCount: likeCountResult?.count ?? 0,
             isLiked,
             isBookmarked,
+            tags: postTagsData,
           };
         })
       );
