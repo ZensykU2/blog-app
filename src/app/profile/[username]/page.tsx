@@ -60,30 +60,32 @@ export default function UserProfilePage() {
     const visibleTabs = tabs;
 
     return (
-        <main className="container mx-auto px-4 py-8 max-w-7xl animate-slide-up">
+        <main className="container mx-auto px-4 py-8 md:py-12 max-w-7xl animate-slide-up">
             <ProfileHeader username={username} />
 
             {/* Tabs Navigation */}
-            <div className="flex flex-wrap items-center gap-2 mb-8 p-1.5 glass-panel rounded-2xl w-fit">
-                {visibleTabs.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as TabType)}
-                            className={`
-                flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer
-                ${isActive
-                                    ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20 scale-105"
-                                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"}
-              `}
-                        >
-                            <Icon size={18} />
-                            {tab.label}
-                        </button>
-                    );
-                })}
+            <div className="flex items-center gap-2 mb-8 p-1.5 glass-panel rounded-2xl w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth">
+                <div className="flex items-center gap-2 min-w-max">
+                    {visibleTabs.map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as TabType)}
+                                className={`
+                    flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer whitespace-nowrap
+                    ${isActive
+                                        ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20 scale-105"
+                                        : "text-slate-400 hover:text-slate-200 hover:bg-white/5"}
+                  `}
+                            >
+                                <Icon size={18} />
+                                <span className="hidden sm:inline">{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Tab Content */}

@@ -48,6 +48,7 @@ export const users = createTable(
     displayName: d.varchar({ length: 100 }),
     bio: d.text(),
     profileImage: d.text(),
+    bannerImage: d.text(),
     role: userRoleEnum().default("user").notNull(),
     trustScore: d.integer().default(0).notNull(),
     isVerified: d.boolean().default(false).notNull(),

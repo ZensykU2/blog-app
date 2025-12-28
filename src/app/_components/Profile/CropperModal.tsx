@@ -10,6 +10,9 @@ interface CropperModalProps {
     imageSrc: string;
     onClose: () => void;
     onCropComplete: (croppedImage: string) => void;
+    aspect?: number;
+    title?: string;
+    cropShape?: "round" | "rect";
 }
 
 async function getCroppedImg(
@@ -59,7 +62,9 @@ export function CropperModal({
     onClose,
     onCropComplete,
     cropShape = "round",
-}: CropperModalProps & { cropShape?: "round" | "rect" }) {
+    aspect = 1,
+    title,
+}: CropperModalProps) {
     const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
@@ -108,7 +113,7 @@ export function CropperModal({
     if (!mounted) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm"
@@ -116,27 +121,27 @@ export function CropperModal({
             />
 
             {/* Modal */}
-            <div className="relative z-10 w-full max-w-lg mx-4 bg-slate-900 rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+            <div className="relative z-10 w-full max-w-2xl mx-auto bg-slate-900 rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-white/10">
                     <h2 className="text-lg font-bold text-white">
-                        {cropShape === 'round' ? 'Adjust Profile Picture' : 'Adjust Image'}
+                        {title ?? (cropShape === 'round' ? 'Adjust Profile Picture' : 'Adjust Image')}
                     </h2>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                        className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
                 {/* Cropper Area */}
-                <div className="relative h-80 bg-black">
+                <div className="relative h-[400px] bg-black">
                     <Cropper
                         image={imageSrc}
                         crop={crop}
                         zoom={zoom}
-                        aspect={1}
+                        aspect={aspect}
                         cropShape={cropShape}
                         showGrid={cropShape === "rect"}
                         onCropChange={onCropChange}

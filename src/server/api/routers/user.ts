@@ -40,6 +40,20 @@ export const userRouter = createTRPCRouter({
             return { success: true };
         }),
 
+    updateBanner: protectedProcedure
+        .input(z.object({ bannerImage: z.string().url() }))
+        .mutation(async ({ ctx, input }) => {
+            await ctx.db
+                .update(users)
+                .set({
+                    bannerImage: input.bannerImage,
+                    updatedAt: new Date(),
+                })
+                .where(eq(users.id, ctx.auth.userId));
+
+            return { success: true };
+        }),
+
     getCurrentUser: protectedProcedure.query(async ({ ctx }) => {
         const user = await ctx.db
             .select()
