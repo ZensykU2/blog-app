@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { encodeId } from "~/lib/ids";
 import { toast } from "react-hot-toast";
 
@@ -98,8 +97,8 @@ export function PostEditor() {
       isSaving={createPost.isPending || createPost.isSuccess}
       saveButtonText={createPost.isSuccess ? "Redirecting..." : "Publish"}
       backButtonText="Back to Feed"
-      draftKey="post_draft_new"
-      hasLoadedDraft={hasLoadedDraft}
+      _draftKey="post_draft_new"
+      _hasLoadedDraft={hasLoadedDraft}
       onDiscardDraft={onDiscardDraft}
       initialTitle=""
       initialContent=""

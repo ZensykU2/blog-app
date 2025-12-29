@@ -4,12 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { api } from "~/trpc/react";
 
-interface Tag {
-    id: number;
-    name: string;
-    slug: string;
-}
-
 interface TagSelectorProps {
     selectedTagIds: number[];
     onChange: (tagIds: number[]) => void;

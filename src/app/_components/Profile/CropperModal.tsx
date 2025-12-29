@@ -69,7 +69,6 @@ export function CropperModal({
 }: CropperModalProps) {
     const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
-    const [minZoom, setMinZoom] = useState(0.5);
     const [selectedAspect, setSelectedAspect] = useState<number | undefined>(aspect);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
         null

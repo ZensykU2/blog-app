@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ArrowLeft, Edit2, User, Type, Clock } from "lucide-react";
+import { ArrowLeft, Edit2, User, Clock } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { auth } from "~/server/auth";

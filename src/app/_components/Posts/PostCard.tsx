@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
+import { Heart, Bookmark, Share2, Edit2, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -41,7 +41,7 @@ interface PostListCache {
   posts: Post[];
 }
 
-type PostCache = Post | PostListCache;
+type _PostCache = Post | PostListCache;
 
 interface PostCardProps {
   post: Post;

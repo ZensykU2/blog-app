@@ -1,20 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, ChevronUp, ChevronDown, Clock, Type } from "lucide-react";
-import Link from "next/link";
 import { toast } from "react-hot-toast";
 
 import { api } from "~/trpc/react";
 import { encodeId } from "~/lib/ids";
 import { BaseEditor } from "./BaseEditor";
-import { TagSelector } from "../Shared/TagSelector";
-import { MarkdownToolbar } from "../Shared/MarkdownToolbar";
-import { FormattingGuide } from "../Shared/FormattingGuide";
-import { MarkdownRenderer } from "../Shared/MarkdownRenderer";
-import { Modal } from "../Shared/Modal";
-import { insertMarkdown } from "~/lib/markdown";
 
 interface PostEditFormProps {
   post: {
@@ -124,8 +116,8 @@ export function PostEditForm({ post }: PostEditFormProps) {
       isSaving={updatePost.isPending || updatePost.isSuccess}
       saveButtonText={updatePost.isSuccess ? "Redirecting..." : "Update"}
       backButtonText="Back to Post"
-      draftKey={`post_draft_${post.id}`}
-      hasLoadedDraft={hasLoadedDraft}
+      _draftKey={`post_draft_${post.id}`}
+      _hasLoadedDraft={hasLoadedDraft}
       onDiscardDraft={onDiscardDraft}
       initialTitle={post.title}
       initialContent={post.content}
