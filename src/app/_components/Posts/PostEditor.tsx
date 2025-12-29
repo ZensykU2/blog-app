@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { encodeId } from "~/lib/ids";
 import { toast } from "react-hot-toast";
 
@@ -55,22 +54,27 @@ export function PostEditor() {
     setHasLoadedDraft(true);
   }, []);
 
-  // Autosave
+  // Autosave - much higher debounce (5s) for heavy content
   useEffect(() => {
     if (!hasLoadedDraft || createPost.isPending || createPost.isSuccess) return;
     const timeout = setTimeout(() => {
-      localStorage.setItem("post_draft_new", JSON.stringify({ title, content, tags: selectedTags }));
-    }, 1000);
+      try {
+        localStorage.setItem("post_draft_new", JSON.stringify({ title, content, tags: selectedTags }));
+      } catch (e) {
+        console.error("Autosave failed", e);
+      }
+    }, 5000);
     return () => clearTimeout(timeout);
   }, [title, content, selectedTags, hasLoadedDraft, createPost.isPending, createPost.isSuccess]);
 
-  const handleSubmit = () => {
-    if (title.trim() && content.trim() && !createPost.isPending && !createPost.isSuccess) {
+  const handleSubmit = (finalContent?: string) => {
+    const currentContent = finalContent ?? content;
+    if (title.trim() && currentContent.trim() && !createPost.isPending && !createPost.isSuccess) {
       const payload = {
         title: title.trim(),
-        content: content.trim(),
+        content: currentContent.trim(),
         tags: selectedTags,
-        wordCount: content.trim().split(/\s+/).length,
+        wordCount: currentContent.trim().split(/\s+/).length,
       };
       createPost.mutate(payload);
     }
@@ -93,8 +97,8 @@ export function PostEditor() {
       isSaving={createPost.isPending || createPost.isSuccess}
       saveButtonText={createPost.isSuccess ? "Redirecting..." : "Publish"}
       backButtonText="Back to Feed"
-      draftKey="post_draft_new"
-      hasLoadedDraft={hasLoadedDraft}
+      _draftKey="post_draft_new"
+      _hasLoadedDraft={hasLoadedDraft}
       onDiscardDraft={onDiscardDraft}
       initialTitle=""
       initialContent=""

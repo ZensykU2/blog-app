@@ -10,6 +10,7 @@ import {
     Heading2,
     Code,
     Link as LinkIcon,
+    Image as ImageIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -34,6 +35,7 @@ export function MarkdownToolbar({ onInsert, onImageClick }: MarkdownToolbarProps
             { icon: Quote, label: "Quote", syntax: "> ", type: "block" },
             { icon: Code, label: "Code Block", syntax: "```\n\n```", type: "wrap" },
             { icon: LinkIcon, label: "Link", syntax: "", type: "link" },
+            { icon: ImageIcon, label: "Image", syntax: "", type: "image" },
         ];
 
     return (

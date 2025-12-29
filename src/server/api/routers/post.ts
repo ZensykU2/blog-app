@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { desc, eq, and, count } from "drizzle-orm";
+import { desc, eq, and, count, lt } from "drizzle-orm";
 
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { posts, users, postLikes, postBookmarks, postTags, tags } from "~/server/db/schema";
@@ -8,11 +8,11 @@ import { posts, users, postLikes, postBookmarks, postTags, tags } from "~/server
 export const postRouter = createTRPCRouter({
   getAll: publicProcedure
     .input(z.object({
-      page: z.number().default(1),
-      limit: z.number().default(8),
+      limit: z.number().min(1).max(100).default(10),
+      cursor: z.date().nullish(), // <-- cursor is a date
     }))
     .query(async ({ ctx, input }) => {
-      const offset = (input.page - 1) * input.limit;
+      const { limit, cursor } = input;
 
       const allPosts = await ctx.db
         .select({
@@ -38,10 +38,14 @@ export const postRouter = createTRPCRouter({
         })
         .from(posts)
         .leftJoin(users, eq(posts.authorId, users.id))
-        .where(eq(posts.status, "published"))
+        .where(
+          and(
+            eq(posts.status, "published"),
+            cursor ? lt(posts.createdAt, cursor) : undefined
+          )
+        )
         .orderBy(desc(posts.createdAt))
-        .limit(input.limit)
-        .offset(offset);
+        .limit(limit + 1); // Fetch one extra to check for hasMore
 
       const userId = ctx.session?.user?.id;
 
@@ -93,15 +97,15 @@ export const postRouter = createTRPCRouter({
         })
       );
 
-      const totalCount = await ctx.db
-        .select({ count: posts.id })
-        .from(posts)
-        .where(eq(posts.status, "published"));
+      let nextCursor: typeof cursor | undefined = undefined;
+      if (postsWithAuthors.length > limit) {
+        const nextItem = postsWithAuthors.pop();
+        nextCursor = nextItem?.createdAt;
+      }
 
       return {
         posts: postsWithAuthors,
-        totalCount: totalCount.length,
-        hasMore: totalCount.length > offset + input.limit,
+        nextCursor,
       };
     }),
 
@@ -286,12 +290,12 @@ export const postRouter = createTRPCRouter({
   getByUser: protectedProcedure
     .input(z.object({
       userId: z.string().optional(),
-      page: z.number().default(1),
-      limit: z.number().default(8),
+      limit: z.number().min(1).max(100).default(10),
+      cursor: z.date().nullish(),
     }))
     .query(async ({ ctx, input }) => {
       const targetUserId = input.userId ?? ctx.auth.userId;
-      const offset = (input.page - 1) * input.limit;
+      const { limit, cursor } = input;
 
       const userPosts = await ctx.db
         .select({
@@ -317,10 +321,14 @@ export const postRouter = createTRPCRouter({
         })
         .from(posts)
         .leftJoin(users, eq(posts.authorId, users.id))
-        .where(eq(posts.authorId, targetUserId))
+        .where(
+          and(
+            eq(posts.authorId, targetUserId),
+            cursor ? lt(posts.createdAt, cursor) : undefined
+          )
+        )
         .orderBy(desc(posts.createdAt))
-        .limit(input.limit)
-        .offset(offset);
+        .limit(limit + 1);
 
       const viewerId = ctx.auth.userId;
 
@@ -371,15 +379,15 @@ export const postRouter = createTRPCRouter({
         })
       );
 
-      const totalCount = await ctx.db
-        .select({ count: posts.id })
-        .from(posts)
-        .where(eq(posts.authorId, targetUserId));
+      let nextCursor: typeof cursor | undefined = undefined;
+      if (postsWithAuthors.length > limit) {
+        const nextItem = postsWithAuthors.pop();
+        nextCursor = nextItem?.createdAt;
+      }
 
       return {
         posts: postsWithAuthors,
-        totalCount: totalCount.length,
-        hasMore: totalCount.length > offset + input.limit,
+        nextCursor,
       };
     }),
 
@@ -462,12 +470,12 @@ export const postRouter = createTRPCRouter({
   getLikedByUser: protectedProcedure
     .input(z.object({
       userId: z.string().optional(),
-      page: z.number().default(1),
-      limit: z.number().default(8),
+      limit: z.number().min(1).max(100).default(10),
+      cursor: z.date().nullish(),
     }))
     .query(async ({ ctx, input }) => {
       const targetUserId = input.userId ?? ctx.auth.userId;
-      const offset = (input.page - 1) * input.limit;
+      const { limit, cursor } = input;
 
       const likedPosts = await ctx.db
         .select({
@@ -494,10 +502,14 @@ export const postRouter = createTRPCRouter({
         .from(postLikes)
         .innerJoin(posts, eq(postLikes.postId, posts.id))
         .leftJoin(users, eq(posts.authorId, users.id))
-        .where(eq(postLikes.userId, targetUserId))
+        .where(
+          and(
+            eq(postLikes.userId, targetUserId),
+            cursor ? lt(postLikes.createdAt, cursor) : undefined
+          )
+        )
         .orderBy(desc(postLikes.createdAt))
-        .limit(input.limit)
-        .offset(offset);
+        .limit(limit + 1);
 
       const viewerId = ctx.auth.userId;
 
@@ -548,27 +560,27 @@ export const postRouter = createTRPCRouter({
         })
       );
 
-      const [totalCountResult] = await ctx.db
-        .select({ count: count() })
-        .from(postLikes)
-        .where(eq(postLikes.userId, targetUserId));
+      let nextCursor: typeof cursor | undefined = undefined;
+      if (postsWithAuthors.length > limit) {
+        const nextItem = postsWithAuthors.pop();
+        nextCursor = nextItem?.createdAt;
+      }
 
       return {
         posts: postsWithAuthors,
-        totalCount: totalCountResult?.count ?? 0,
-        hasMore: (totalCountResult?.count ?? 0) > offset + input.limit,
+        nextCursor,
       };
     }),
 
   getBookmarkedByUser: protectedProcedure
     .input(z.object({
       userId: z.string().optional(),
-      page: z.number().default(1),
-      limit: z.number().default(8),
+      limit: z.number().min(1).max(100).default(10),
+      cursor: z.date().nullish(),
     }))
     .query(async ({ ctx, input }) => {
       const targetUserId = input.userId ?? ctx.auth.userId;
-      const offset = (input.page - 1) * input.limit;
+      const { limit, cursor } = input;
 
       const bookmarkedPosts = await ctx.db
         .select({
@@ -595,10 +607,14 @@ export const postRouter = createTRPCRouter({
         .from(postBookmarks)
         .innerJoin(posts, eq(postBookmarks.postId, posts.id))
         .leftJoin(users, eq(posts.authorId, users.id))
-        .where(eq(postBookmarks.userId, targetUserId))
+        .where(
+          and(
+            eq(postBookmarks.userId, targetUserId),
+            cursor ? lt(postBookmarks.createdAt, cursor) : undefined
+          )
+        )
         .orderBy(desc(postBookmarks.createdAt))
-        .limit(input.limit)
-        .offset(offset);
+        .limit(limit + 1);
 
       const viewerId = ctx.auth.userId;
 
@@ -649,15 +665,15 @@ export const postRouter = createTRPCRouter({
         })
       );
 
-      const [totalCountResult] = await ctx.db
-        .select({ count: count() })
-        .from(postBookmarks)
-        .where(eq(postBookmarks.userId, targetUserId));
+      let nextCursor: typeof cursor | undefined = undefined;
+      if (postsWithAuthors.length > limit) {
+        const nextItem = postsWithAuthors.pop();
+        nextCursor = nextItem?.createdAt;
+      }
 
       return {
         posts: postsWithAuthors,
-        totalCount: totalCountResult?.count ?? 0,
-        hasMore: (totalCountResult?.count ?? 0) > offset + input.limit,
+        nextCursor,
       };
     }),
 });

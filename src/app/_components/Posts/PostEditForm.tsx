@@ -1,20 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, ChevronUp, ChevronDown, Clock, Type } from "lucide-react";
-import Link from "next/link";
 import { toast } from "react-hot-toast";
 
 import { api } from "~/trpc/react";
 import { encodeId } from "~/lib/ids";
 import { BaseEditor } from "./BaseEditor";
-import { TagSelector } from "../Shared/TagSelector";
-import { MarkdownToolbar } from "../Shared/MarkdownToolbar";
-import { FormattingGuide } from "../Shared/FormattingGuide";
-import { MarkdownRenderer } from "../Shared/MarkdownRenderer";
-import { Modal } from "../Shared/Modal";
-import { insertMarkdown } from "~/lib/markdown";
 
 interface PostEditFormProps {
   post: {
@@ -43,6 +35,7 @@ interface PostDraft {
 
 export function PostEditForm({ post }: PostEditFormProps) {
   const router = useRouter();
+  const utils = api.useUtils();
   const [title, setTitle] = useState(post.title);
   const [content, setContent] = useState(post.content);
   const [selectedTags, setSelectedTags] = useState<number[]>(post.tags?.map(t => t.id) ?? []);
@@ -51,6 +44,10 @@ export function PostEditForm({ post }: PostEditFormProps) {
   const updatePost = api.post.update.useMutation({
     onSuccess: (data) => {
       localStorage.removeItem(`post_draft_${post.id}`);
+      // Invalidate all feed queries to show updated images immediately
+      void utils.post.getAll.invalidate();
+      void utils.post.getByUser.invalidate();
+      void utils.post.getById.invalidate();
       if (data?.id) {
         router.push(`/post/${encodeId(data.id)}`);
       } else {
@@ -89,14 +86,15 @@ export function PostEditForm({ post }: PostEditFormProps) {
     return () => clearTimeout(timeout);
   }, [title, content, selectedTags, post.id, hasLoadedDraft, updatePost.isPending, updatePost.isSuccess]);
 
-  const handleSubmit = () => {
-    if (title.trim() && content.trim() && !updatePost.isPending && !updatePost.isSuccess) {
+  const handleSubmit = (finalContent?: string) => {
+    const contentToUse = finalContent ?? content;
+    if (title.trim() && contentToUse.trim() && !updatePost.isPending && !updatePost.isSuccess) {
       updatePost.mutate({
         id: post.id,
         title: title.trim(),
-        content: content.trim(),
+        content: contentToUse.trim(),
         tags: selectedTags,
-        wordCount: content.trim().split(/\s+/).length,
+        wordCount: contentToUse.trim().split(/\s+/).length,
       });
     }
   };
@@ -118,8 +116,8 @@ export function PostEditForm({ post }: PostEditFormProps) {
       isSaving={updatePost.isPending || updatePost.isSuccess}
       saveButtonText={updatePost.isSuccess ? "Redirecting..." : "Update"}
       backButtonText="Back to Post"
-      draftKey={`post_draft_${post.id}`}
-      hasLoadedDraft={hasLoadedDraft}
+      _draftKey={`post_draft_${post.id}`}
+      _hasLoadedDraft={hasLoadedDraft}
       onDiscardDraft={onDiscardDraft}
       initialTitle={post.title}
       initialContent={post.content}

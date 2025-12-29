@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
+import { Heart, Bookmark, Share2, Edit2, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -11,6 +11,8 @@ import { api } from "~/trpc/react";
 import { encodeId } from "~/lib/ids";
 import { DeleteConfirmationModal } from "../Shared/DeleteConfirmationModal";
 import { MarkdownRenderer } from "../Shared/MarkdownRenderer";
+import { extractImages } from "~/lib/post-utils";
+import { Lightbox } from "../Shared/Lightbox";
 
 interface PostAuthor {
   id: string | null;
@@ -39,7 +41,7 @@ interface PostListCache {
   posts: Post[];
 }
 
-type PostCache = Post | PostListCache;
+type _PostCache = Post | PostListCache;
 
 interface PostCardProps {
   post: Post;
@@ -52,6 +54,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [isBookmarkAnimating, setIsBookmarkAnimating] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const isOwner = session?.user?.id === post.author?.id;
 
@@ -165,6 +168,8 @@ export function PostCard({ post, priority = false }: PostCardProps) {
     return post.author?.profileImage ?? post.author?.image ?? null;
   };
 
+  const coverImages = extractImages(post.content, 4);
+
   return (
     <>
       <div className="h-full relative block">
@@ -216,7 +221,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
             {isOwner && (
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                 <Link href={`/edit/${encodeId(post.id)}`} onClick={(e) => e.stopPropagation()}>
-                  <button className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+                  <button className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer">
                     <Edit2 size={14} />
                   </button>
                 </Link>
@@ -226,7 +231,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
                     e.stopPropagation();
                     setShowDeleteModal(true);
                   }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -236,29 +241,60 @@ export function PostCard({ post, priority = false }: PostCardProps) {
 
           <div className="flex flex-col flex-1 p-5 min-h-0">
             {/* Title */}
-            <div className="h-[3.5rem] mb-3">
-              <h3 className="text-xl font-bold text-slate-100 line-clamp-2 leading-tight group-hover:text-purple-300 transition-colors">
+            <div className="mb-2">
+              <h3 className="text-2xl font-bold text-slate-100 line-clamp-2 leading-tight group-hover:text-purple-300 transition-colors">
                 {post.title}
               </h3>
             </div>
 
             {/* Content Preview */}
-            <div className="h-[6rem] mb-4 overflow-hidden mask-image-b min-h-0 relative">
-              <div className="line-clamp-4 text-slate-400 text-sm leading-relaxed pointer-events-none">
-                <MarkdownRenderer content={post.content} variant="sm" />
+            <div className="mb-3 overflow-hidden mask-image-b min-h-0 relative">
+              <div className="line-clamp-3 text-slate-400 text-base leading-relaxed pointer-events-none">                <MarkdownRenderer content={post.content} variant="sm" />
               </div>
             </div>
 
+            {/* Cover Images */}
+            {coverImages.length > 0 && (
+              <div className={`mb-3 overflow-hidden rounded-xl ${coverImages.length === 1 ? '' :
+                coverImages.length === 2 ? 'grid grid-cols-2 gap-2' :
+                  coverImages.length === 3 ? 'grid grid-cols-3 gap-2' :
+                    'grid grid-cols-2 gap-2'
+                }`}>
+                {coverImages.map((image, index) => (
+                  <div
+                    key={index}
+                    className={`relative overflow-hidden rounded-lg cursor-pointer z-20 ${coverImages.length === 1 ? 'aspect-[3/2]' :
+                      coverImages.length === 4 ? 'aspect-square' :
+                        'aspect-[3/2]'
+                      }`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setLightboxIndex(index);
+                    }}
+                  >
+                    <Image
+                      src={image}
+                      alt={`${post.title} - Image ${index + 1}`}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      priority={priority && index === 0}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
             {/* Tags */}
             {post.tags && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-3 flex-shrink-0 relative z-20">
+              <div className="flex flex-wrap gap-2 mb-3 flex-shrink-0 relative z-20">
                 {post.tags.slice(0, 3).map(tag => (
-                  <span key={tag.id} className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                  <span key={tag.id} className="text-xs px-3 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">
                     {tag.name}
                   </span>
                 ))}
                 {post.tags.length > 3 && (
-                  <span className="text-[10px] text-slate-500">+{post.tags.length - 3}</span>
+                  <span className="text-xs text-slate-500 font-medium">+{post.tags.length - 3}</span>
                 )}
               </div>
             )}
@@ -313,6 +349,12 @@ export function PostCard({ post, priority = false }: PostCardProps) {
           </div>
         </article>
       </div>
+
+      <Lightbox
+        images={lightboxIndex !== null ? coverImages : []}
+        initialIndex={lightboxIndex ?? 0}
+        onClose={() => setLightboxIndex(null)}
+      />
 
       <DeleteConfirmationModal
         isOpen={showDeleteModal}

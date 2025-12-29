@@ -13,6 +13,7 @@ interface CropperModalProps {
     aspect?: number;
     title?: string;
     cropShape?: "round" | "rect";
+    showAspectRatioSelection?: boolean;
 }
 
 async function getCroppedImg(
@@ -64,9 +65,11 @@ export function CropperModal({
     cropShape = "round",
     aspect = 1,
     title,
+    showAspectRatioSelection = false,
 }: CropperModalProps) {
     const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
+    const [selectedAspect, setSelectedAspect] = useState<number | undefined>(aspect);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
         null
     );
@@ -141,7 +144,9 @@ export function CropperModal({
                         image={imageSrc}
                         crop={crop}
                         zoom={zoom}
-                        aspect={aspect}
+                        minZoom={0.5}
+                        maxZoom={3}
+                        aspect={selectedAspect}
                         cropShape={cropShape}
                         showGrid={cropShape === "rect"}
                         onCropChange={onCropChange}
@@ -150,15 +155,41 @@ export function CropperModal({
                     />
                 </div>
 
+                {/* Aspect Ratio Selection - Only for blog posts */}
+                {showAspectRatioSelection && (
+                    <div className="px-4 py-3 border-b border-white/10">
+                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                            <button
+                                onClick={() => setSelectedAspect(1)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedAspect === 1
+                                    ? 'bg-purple-500 text-white'
+                                    : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                                    }`}
+                            >
+                                Square
+                            </button>
+                            <button
+                                onClick={() => setSelectedAspect(16 / 9)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedAspect !== undefined && Math.abs(selectedAspect - 16 / 9) < 0.01
+                                    ? 'bg-purple-500 text-white'
+                                    : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                                    }`}
+                            >
+                                Landscape
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Controls */}
                 <div className="p-4">
                     <div className="flex items-center gap-4">
                         <ZoomOut size={18} className="text-slate-400" />
                         <input
                             type="range"
-                            min={1}
+                            min={0.5}
                             max={3}
-                            step={0.1}
+                            step={0.05}
                             value={zoom}
                             onChange={(e) => setZoom(Number(e.target.value))}
                             className="flex-1 h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:cursor-pointer"
