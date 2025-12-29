@@ -43,6 +43,7 @@ interface PostDraft {
 
 export function PostEditForm({ post }: PostEditFormProps) {
   const router = useRouter();
+  const utils = api.useUtils();
   const [title, setTitle] = useState(post.title);
   const [content, setContent] = useState(post.content);
   const [selectedTags, setSelectedTags] = useState<number[]>(post.tags?.map(t => t.id) ?? []);
@@ -51,6 +52,10 @@ export function PostEditForm({ post }: PostEditFormProps) {
   const updatePost = api.post.update.useMutation({
     onSuccess: (data) => {
       localStorage.removeItem(`post_draft_${post.id}`);
+      // Invalidate all feed queries to show updated images immediately
+      void utils.post.getAll.invalidate();
+      void utils.post.getByUser.invalidate();
+      void utils.post.getById.invalidate();
       if (data?.id) {
         router.push(`/post/${encodeId(data.id)}`);
       } else {
@@ -89,14 +94,15 @@ export function PostEditForm({ post }: PostEditFormProps) {
     return () => clearTimeout(timeout);
   }, [title, content, selectedTags, post.id, hasLoadedDraft, updatePost.isPending, updatePost.isSuccess]);
 
-  const handleSubmit = () => {
-    if (title.trim() && content.trim() && !updatePost.isPending && !updatePost.isSuccess) {
+  const handleSubmit = (finalContent?: string) => {
+    const contentToUse = finalContent ?? content;
+    if (title.trim() && contentToUse.trim() && !updatePost.isPending && !updatePost.isSuccess) {
       updatePost.mutate({
         id: post.id,
         title: title.trim(),
-        content: content.trim(),
+        content: contentToUse.trim(),
         tags: selectedTags,
-        wordCount: content.trim().split(/\s+/).length,
+        wordCount: contentToUse.trim().split(/\s+/).length,
       });
     }
   };

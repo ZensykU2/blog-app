@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Edit2, Check, X, User, Camera, Settings } from "lucide-react";
+import { Lightbox } from "../Shared/Lightbox";
 import TextareaAutosize from "react-textarea-autosize";
 import { api } from "~/trpc/react";
 import { toast } from "react-hot-toast";
@@ -445,36 +446,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
             </div>
 
             {/* Lightbox / Preview Overlay */}
-            {previewImage && mounted && typeof document !== "undefined" && createPortal(
-                <div
-                    className="fixed inset-0 w-screen h-screen z-[999999] bg-black/95 backdrop-blur-3xl flex items-center justify-center animate-fade-in p-4 md:p-12 cursor-pointer"
-                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }}
-                    onClick={() => setPreviewImage(null)}
-                >
-                    <button
-                        className="absolute top-6 right-6 p-4 text-white/50 hover:text-white transition-all z-[1000001] bg-white/5 hover:bg-white/10 rounded-full border border-white/10 backdrop-blur-md flex items-center justify-center cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); setPreviewImage(null); }}
-                    >
-                        <X size={28} />
-                    </button>
-
-                    <div
-                        className="relative w-full h-full max-w-[95vw] max-h-[90vh] flex items-center justify-center pointer-events-none"
-                    >
-                        <div className="relative w-full h-full flex items-center justify-center pointer-events-auto cursor-default" onClick={(e) => e.stopPropagation()}>
-                            <Image
-                                src={previewImage}
-                                alt="Preview"
-                                fill
-                                className="object-contain"
-                                priority
-                                sizes="95vw"
-                            />
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+            <Lightbox images={previewImage ? [previewImage] : []} initialIndex={0} onClose={() => setPreviewImage(null)} />
         </>
     );
 }
