@@ -16,7 +16,7 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ username }: ProfileHeaderProps) {
-    const { data: session, status: sessionStatus } = useSession();
+    const { data: session, status: sessionStatus, update } = useSession();
     const isSessionLoaded = sessionStatus !== "loading";
     const [pendingDisplayName, setPendingDisplayName] = useState("");
     const [pendingUsername, setPendingUsername] = useState("");
@@ -159,27 +159,40 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
 
             toast.success("Profile updated successfully!");
 
-            // Optimistically update the cache to prevent "reloading" flicker
-            const updatedProfile = {
-                ...dbUser,
-                displayName: pendingDisplayName,
-                username: pendingUsername,
-                bio: pendingBio,
-                profileImage: pendingAvatar ?? dbUser.profileImage,
-                bannerImage: pendingBanner ?? dbUser.bannerImage,
-            };
-
-            utils.user.getProfile.setData({ username: username }, (old) => old ? ({
-                ...old,
-                displayName: pendingDisplayName,
-                username: pendingUsername,
-                bio: pendingBio,
-                profileImage: pendingAvatar ?? old.profileImage,
-                bannerImage: pendingBanner ?? old.bannerImage,
-            }) : undefined);
-
             if (hasUsernameChanged) {
-                utils.user.getProfile.setData({ username: pendingUsername }, (old) => old ? ({
+                // If username changed, we navigate away. 
+                // We skip the intermediate view-mode flicker on the old URL.
+
+                // 1. Prepare the updated profile for the NEW username cache
+                const updatedProfile = {
+                    ...dbUser,
+                    displayName: pendingDisplayName,
+                    username: pendingUsername,
+                    bio: pendingBio,
+                    profileImage: pendingAvatar ?? dbUser.profileImage,
+                    bannerImage: pendingBanner ?? dbUser.bannerImage,
+                };
+
+                // 2. Optimistically set the cache for the NEW URL so it's instant when we arrive
+                utils.user.getProfile.setData({ username: pendingUsername }, updatedProfile as any);
+
+                // 3. Start session sync and navigation simultaneously
+                void update();
+                router.replace(`/profile/${pendingUsername}`);
+
+                // Cleanup local image state
+                setPendingAvatar(null);
+                setPendingBanner(null);
+                return;
+            } else {
+                // If username didn't change, we can be more smooth on the current page
+
+                // 1. Re-sync the session (for images/display name in header)
+                // We await this to ensure the header is updated before we flip the view mode
+                await update();
+
+                // 2. Optimistically update the current cache
+                utils.user.getProfile.setData({ username: username }, (old) => old ? ({
                     ...old,
                     displayName: pendingDisplayName,
                     username: pendingUsername,
@@ -187,16 +200,8 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                     profileImage: pendingAvatar ?? old.profileImage,
                     bannerImage: pendingBanner ?? old.bannerImage,
                 }) : undefined);
-            }
 
-            if (hasUsernameChanged) {
-                // Navigate to the new username URL
-                setIsEditingProfile(false);
-                setPendingAvatar(null);
-                setPendingBanner(null);
-                router.push(`/profile/${pendingUsername}`);
-            } else {
-                // If username didn't change, we can be more smooth
+                // 3. Smoothly exit edit mode
                 await refetch();
                 setIsEditingProfile(false);
                 setPendingAvatar(null);
