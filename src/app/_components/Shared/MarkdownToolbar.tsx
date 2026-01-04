@@ -45,6 +45,7 @@ export function MarkdownToolbar({ onInsert, onImageClick }: MarkdownToolbarProps
                     key={tool.label}
                     type="button"
                     title={tool.label}
+                    suppressHydrationWarning
                     onClick={() => {
                         if (tool.label === "Image" && onImageClick) {
                             onImageClick();

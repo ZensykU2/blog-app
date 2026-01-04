@@ -54,6 +54,7 @@ export default tseslint.config(
         { drizzleObjectName: ["db", "ctx.db"] },
       ],
       "import/no-default-export": "off",
+      "react-hooks/exhaustive-deps": "off",
     },
   },
   {

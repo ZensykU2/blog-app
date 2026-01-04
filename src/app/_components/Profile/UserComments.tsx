@@ -21,7 +21,7 @@ interface Comment {
     content: string;
     createdAt: Date;
     postId: number;
-    post: { id: number; title: string } | null;
+    post: { id: number; title: string | null } | null;
 }
 
 interface GroupedComments {

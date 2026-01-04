@@ -144,6 +144,11 @@ export const postRouter = createTRPCRouter({
       const userId = ctx.session?.user.id;
       const targetPost = post[0];
 
+      // Draft privacy
+      if (targetPost.status === "draft" && targetPost.authorId !== userId) {
+        return null;
+      }
+
       const [likeCountResult] = await ctx.db
         .select({ count: count() })
         .from(postLikes)
@@ -190,29 +195,35 @@ export const postRouter = createTRPCRouter({
 
   create: protectedProcedure
     .input(z.object({
-      title: z.string().min(1),
-      content: z.string().min(1),
+      title: z.string().optional(),
+      content: z.string().optional(),
+      status: z.enum(["draft", "published"]).default("draft"),
       tags: z.array(z.number()).optional(),
       wordCount: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const readingTime = Math.ceil((input.wordCount ?? 0) / 200);
       const randomSuffix = Math.random().toString(36).substring(2, 7);
-      const slug = `${input.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')}-${randomSuffix}`;
+
+      let slug = undefined;
+      if (input.title) {
+        slug = `${input.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')}-${randomSuffix}`;
+      }
 
       const [newPost] = await ctx.db.insert(posts).values({
         title: input.title,
         content: input.content,
         slug,
         authorId: ctx.auth.userId,
-        status: "published",
+        status: input.status,
         wordCount: input.wordCount ?? 0,
         readingTime,
         createdAt: new Date(),
         updatedAt: new Date(),
+        publishedAt: input.status === "published" ? new Date() : null,
       }).returning({ id: posts.id });
 
       if (newPost && input.tags && input.tags.length > 0) {
@@ -234,24 +245,37 @@ export const postRouter = createTRPCRouter({
   update: protectedProcedure
     .input(z.object({
       id: z.number(),
-      title: z.string().min(1),
-      content: z.string().min(1),
+      title: z.string().optional(),
+      content: z.string().optional(),
+      status: z.enum(["draft", "published"]).optional(),
       tags: z.array(z.number()).optional(),
       wordCount: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const readingTime = Math.ceil((input.wordCount ?? 0) / 200);
 
+      const updateData: Partial<typeof posts.$inferInsert> = {
+        title: input.title,
+        content: input.content,
+        wordCount: input.wordCount ?? 0,
+        readingTime,
+        updatedAt: new Date(),
+      };
+
+      if (input.title) {
+        updateData.slug = input.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Math.random().toString(36).substring(2, 5);
+      }
+
+      if (input.status) {
+        updateData.status = input.status;
+        if (input.status === "published") {
+          updateData.publishedAt = new Date();
+        }
+      }
+
       const [updatedPost] = await ctx.db
         .update(posts)
-        .set({
-          title: input.title,
-          content: input.content,
-          slug: input.title.toLowerCase().replace(/\s+/g, '-'),
-          wordCount: input.wordCount ?? 0,
-          readingTime,
-          updatedAt: new Date(),
-        })
+        .set(updateData)
         .where(and(
           eq(posts.id, input.id),
           eq(posts.authorId, ctx.auth.userId)
@@ -290,11 +314,13 @@ export const postRouter = createTRPCRouter({
   getByUser: protectedProcedure
     .input(z.object({
       userId: z.string().optional(),
+      status: z.enum(["published", "draft", "archived"]).optional(),
       limit: z.number().min(1).max(100).default(10),
       cursor: z.date().nullish(),
     }))
     .query(async ({ ctx, input }) => {
-      const targetUserId = input.userId ?? ctx.auth.userId;
+      const viewerId = ctx.auth.userId;
+      const targetUserId = input.userId ?? viewerId;
       const { limit, cursor } = input;
 
       const userPosts = await ctx.db
@@ -324,13 +350,14 @@ export const postRouter = createTRPCRouter({
         .where(
           and(
             eq(posts.authorId, targetUserId),
+            input.status ? eq(posts.status, input.status) : (targetUserId === viewerId ? undefined : eq(posts.status, "published")),
             cursor ? lt(posts.createdAt, cursor) : undefined
           )
         )
         .orderBy(desc(posts.createdAt))
         .limit(limit + 1);
 
-      const viewerId = ctx.auth.userId;
+
 
       const postsWithAuthors = await Promise.all(
         userPosts.map(async (post) => {

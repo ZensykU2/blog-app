@@ -11,8 +11,8 @@ import { BaseEditor } from "./BaseEditor";
 interface PostEditFormProps {
   post: {
     id: number;
-    title: string;
-    content: string;
+    title: string | null;
+    content: string | null;
     createdAt: Date;
     updatedAt: Date | null;
     status: "draft" | "published" | "archived";
@@ -36,71 +36,139 @@ interface PostDraft {
 export function PostEditForm({ post }: PostEditFormProps) {
   const router = useRouter();
   const utils = api.useUtils();
-  const [title, setTitle] = useState(post.title);
-  const [content, setContent] = useState(post.content);
+  const [title, setTitle] = useState(post.title ?? "");
+  const [content, setContent] = useState(post.content ?? "");
   const [selectedTags, setSelectedTags] = useState<number[]>(post.tags?.map(t => t.id) ?? []);
-  const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
+
+  // Clear legacy local storage drafts
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(`post_draft_${post.id}`);
+    }
+  }, [post.id]);
+
+  // Track initial state to handle "dirty" check correctly after saves
+  const [baseState, setBaseState] = useState({
+    title: post.title ?? "",
+    content: post.content ?? "",
+    tags: post.tags?.map(t => t.id) ?? [],
+  });
 
   const updatePost = api.post.update.useMutation({
     onSuccess: (data) => {
-      localStorage.removeItem(`post_draft_${String(post.id)}`);
-      // Invalidate all feed queries to show updated images immediately
+      // Clear backup on success
+      localStorage.removeItem(`backup_edit_${post.id}`);
+
       void utils.post.getAll.invalidate();
       void utils.post.getByUser.invalidate();
       void utils.post.getById.invalidate();
+
       if (data?.id) {
-        router.push(`/post/${encodeId(data.id)}`);
-      } else {
-        router.push("/");
+        // Update baseState so the dirty check in BaseEditor becomes false
+        setBaseState({
+          title: title.trim(),
+          content: content.trim(),
+          tags: [...selectedTags].sort((a, b) => a - b)
+        });
       }
-      toast.success("Post updated successfully!");
     },
     onError: (error) => {
       toast.error(error.message);
     },
   });
 
-  // Load draft on mount if it exists
+
+
+  const [resetKey, setResetKey] = useState(0);
+
+  // Restore backup on mount
   useEffect(() => {
-    const savedDraft = localStorage.getItem(`post_draft_${String(post.id)}`);
-    if (savedDraft) {
+    const backup = localStorage.getItem(`backup_edit_${post.id}`);
+    if (backup) {
       try {
-        const parsed = JSON.parse(savedDraft) as PostDraft;
-        if (parsed.title) setTitle(parsed.title);
-        if (parsed.content) setContent(parsed.content);
-        if (Array.isArray(parsed.tags)) setSelectedTags(parsed.tags);
-        toast.success("Local draft restored!");
+        const parsed = JSON.parse(backup) as PostDraft;
+        toast((t) => (
+          <span className="flex items-center gap-3">
+            Unsaved changes found
+            <button
+              onClick={() => {
+                setTitle(parsed.title);
+                setContent(parsed.content);
+                setSelectedTags(parsed.tags);
+                setResetKey(prev => prev + 1);
+                toast.dismiss(t.id);
+                toast.success("Restored!");
+              }}
+              className="px-2 py-1 bg-purple-500 text-white text-xs rounded-lg font-bold"
+            >
+              Restore
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem(`backup_edit_${post.id}`);
+                toast.dismiss(t.id);
+              }}
+              className="text-slate-400 text-xs"
+            >
+              Ignore
+            </button>
+          </span>
+        ), { duration: 6000 });
       } catch (e) {
-        console.error("Failed to parse edit draft", e);
+        console.error("Failed to parse backup", e);
       }
     }
-    setHasLoadedDraft(true);
   }, [post.id]);
 
-  // Autosave
-  useEffect(() => {
-    if (!hasLoadedDraft || updatePost.isPending || updatePost.isSuccess) return;
-    const timeout = setTimeout(() => {
-      localStorage.setItem(`post_draft_${String(post.id)}`, JSON.stringify({ title, content, tags: selectedTags }));
-    }, 1000);
-    return () => { clearTimeout(timeout); };
-  }, [title, content, selectedTags, post.id, hasLoadedDraft, updatePost.isPending, updatePost.isSuccess]);
+  const [savingAction, setSavingAction] = useState<"primary" | "secondary" | null>(null);
 
-  const handleSubmit = (finalContent?: string) => {
+  const handlePublish = (finalContent?: string) => {
+    setSavingAction("primary");
     const contentToUse = finalContent ?? content;
-    if (title.trim() && contentToUse.trim() && !updatePost.isPending && !updatePost.isSuccess) {
+    if (title.trim() && contentToUse.trim()) {
       updatePost.mutate({
         id: post.id,
         title: title.trim(),
         content: contentToUse.trim(),
+        status: "published",
         tags: selectedTags,
         wordCount: contentToUse.trim().split(/\s+/).length,
+      }, {
+        onSuccess: (data) => {
+          if (data?.id) router.push(`/post/${encodeId(data.id)}`);
+          toast.success("Post published!");
+          setSavingAction(null);
+        },
+        onError: () => { setSavingAction(null); }
       });
+    } else {
+      setSavingAction(null);
     }
   };
 
+  const handleSaveDraft = (finalContent?: string) => {
+    setSavingAction("secondary");
+    const contentToUse = finalContent ?? content;
+    updatePost.mutate({
+      id: post.id,
+      title: title.trim(),
+      content: contentToUse.trim(),
+      tags: selectedTags,
+      wordCount: contentToUse.trim().split(/\s+/).length,
+    }, {
+      onSuccess: () => {
+        localStorage.removeItem(`backup_edit_${post.id}`);
+        toast.success("Draft saved!");
+        router.push(post.status === "draft" ? "/" : `/post/${encodeId(post.id)}`);
+        setSavingAction(null);
+      },
+      onError: () => { setSavingAction(null); }
+    });
+  };
+
   const onDiscardDraft = () => {
-    localStorage.removeItem(`post_draft_${post.id}`);
+    localStorage.removeItem(`backup_edit_${post.id}`);
+    router.push(post.status === "draft" ? "/" : `/post/${encodeId(post.id)}`);
   };
 
   return (
@@ -111,17 +179,20 @@ export function PostEditForm({ post }: PostEditFormProps) {
       setContent={setContent}
       selectedTags={selectedTags}
       setSelectedTags={setSelectedTags}
-      onSave={handleSubmit}
-      onBack={() => { router.push(`/post/${encodeId(post.id)}`); }}
-      isSaving={updatePost.isPending || updatePost.isSuccess}
-      saveButtonText={updatePost.isSuccess ? "Redirecting..." : "Update"}
-      backButtonText="Back to Post"
-      _draftKey={`post_draft_${String(post.id)}`}
-      _hasLoadedDraft={hasLoadedDraft}
+      onSave={handlePublish}
+      onSecondaryAction={post.status === "draft" ? handleSaveDraft : undefined}
+      saveButtonText={post.status === "draft" ? "Publish Now" : (updatePost.isSuccess ? "Saved!" : "Update Post")}
+      secondaryButtonText={post.status === "draft" ? "Save as Draft" : undefined}
+      onBack={() => { router.push(post.status === "draft" ? "/" : `/post/${encodeId(post.id)}`); }}
+      isSaving={savingAction === "primary" && updatePost.isPending}
+      isSecondaryLoading={savingAction === "secondary" && updatePost.isPending}
+      backButtonText={post.status === "draft" ? "Back to Feed" : "Back to Post"}
       onDiscardDraft={onDiscardDraft}
-      initialTitle={post.title}
-      initialContent={post.content}
-      initialTags={post.tags?.map(t => t.id) ?? []}
+      initialTitle={baseState.title}
+      initialContent={baseState.content}
+      initialTags={baseState.tags}
+      persistenceKey={`backup_edit_${post.id}`}
+      key={resetKey}
     />
   );
 }

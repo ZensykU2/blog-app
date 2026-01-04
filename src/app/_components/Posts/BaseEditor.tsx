@@ -29,13 +29,15 @@ interface BaseEditorProps {
   onBack: () => void;
   isSaving: boolean;
   saveButtonText: string;
+  secondaryButtonText?: string;
+  onSecondaryAction?: (finalContent?: string) => void;
+  isSecondaryLoading?: boolean;
   backButtonText: string;
-  _draftKey: string;
-  _hasLoadedDraft: boolean;
   onDiscardDraft: () => void;
   initialTitle?: string;
   initialContent?: string;
   initialTags?: number[];
+  persistenceKey?: string;
 }
 
 export function BaseEditor({
@@ -49,13 +51,15 @@ export function BaseEditor({
   onBack,
   isSaving,
   saveButtonText,
+  secondaryButtonText,
+  onSecondaryAction,
+  isSecondaryLoading,
   backButtonText,
-  _draftKey,
-  _hasLoadedDraft,
   onDiscardDraft,
   initialTitle = "",
   initialContent = "",
   initialTags = [],
+  persistenceKey,
 }: BaseEditorProps) {
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
   const [isToolbarOpen, setIsToolbarOpen] = useState(true);
@@ -126,10 +130,25 @@ export function BaseEditor({
       if (finalContent !== content) {
         setContent(finalContent);
       }
-    }, 2500);
+    }, 1000);
 
     return () => { clearTimeout(timeout); };
   }, [localStory, localVault, isInitialized, setContent, content, VAULT_MARKER]);
+
+  // Real-time Persistence
+  useEffect(() => {
+    if (!persistenceKey || !isInitialized) return;
+
+    const isDirty = title.trim() || localStory.trim() || selectedTags.length > 0;
+
+    if (isDirty) {
+      localStorage.setItem(persistenceKey, JSON.stringify({
+        title,
+        content: localStory,
+        tags: selectedTags
+      }));
+    }
+  }, [title, localStory, selectedTags, persistenceKey, isInitialized]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalStory(e.target.value);
@@ -143,12 +162,16 @@ export function BaseEditor({
     };
   }, [localStory]);
 
-  const handleBackPress = () => {
-    const isDirty =
-      title !== initialTitle ||
+  const isDirty = useMemo(() => {
+    return title !== initialTitle ||
       content !== initialContent ||
       JSON.stringify([...selectedTags].sort((a, b) => a - b)) !==
       JSON.stringify([...initialTags].sort((a, b) => a - b));
+  }, [title, content, selectedTags, initialTitle, initialContent, initialTags]);
+
+  const handleBackPress = () => {
+    // Prevent leaving while strictly saving
+    if (isSaving || (isSecondaryLoading ?? false)) return;
 
     if (isDirty && (title.trim() || content.trim() || selectedTags.length > 0)) {
       setShowBackModal(true);
@@ -251,47 +274,75 @@ export function BaseEditor({
         <div className="col-span-1 xl:col-span-2 flex items-center justify-between py-8">
           <button
             onClick={handleBackPress}
-            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer group w-fit"
+            disabled={isSaving || (isSecondaryLoading ?? false)}
+            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer group w-fit disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowLeft
               size={20}
               className="group-hover:-translate-x-1 transition-transform"
             />
-            {backButtonText}
+            <span className="hidden md:inline">{backButtonText}</span>
           </button>
 
-          <button
-            onClick={() => {
-              const usedRefs = (localStory.match(/\[img[a-z0-9]+\]/g) ?? []).map(
-                (r) => r.replace(/[\[\]]/g, "")
-              );
-              const definitions: string[] = [];
-              Object.entries(localVault).forEach(([id, data]) => {
-                if (usedRefs.includes(id)) definitions.push(`[${id}]: ${data}`);
-              });
-              const storyPart = localStory.trim();
-              const finalContent =
-                definitions.length > 0
-                  ? `${storyPart}\n\n${VAULT_MARKER}\n\n${definitions.join(
-                    "\n\n"
-                  )}`
-                  : storyPart;
-
-              setContent(finalContent);
-              onSave(finalContent);
-            }}
-            disabled={isSaving || !title.trim() || !localStory.trim()}
-            className="flex items-center gap-2 bg-white text-black px-8 py-2.5 rounded-full font-bold hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 cursor-pointer shadow-xl shadow-white/5"
-          >
-            {isSaving ? (
-              <div className="w-5 h-5 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin" />
-            ) : (
-              <>
-                <Save size={18} />
-                {saveButtonText}
-              </>
+          <div className="flex items-center gap-2 md:gap-3">
+            {secondaryButtonText && (
+              <button
+                onClick={() => {
+                  const storyPart = localStory.trim();
+                  const definitions: string[] = [];
+                  const usedRefs = (localStory.match(/\[img[a-z0-9]+\]/g) ?? []).map((r) => r.replace(/[\[\]]/g, ""));
+                  Object.entries(localVault).forEach(([id, data]) => { if (usedRefs.includes(id)) definitions.push(`[${id}]: ${data}`); });
+                  const finalContent = definitions.length > 0 ? `${storyPart}\n\n${VAULT_MARKER}\n\n${definitions.join("\n\n")}` : storyPart;
+                  setContent(finalContent);
+                  onSecondaryAction?.(finalContent);
+                }}
+                disabled={isSaving || isSecondaryLoading}
+                className="flex items-center justify-center px-4 md:px-6 py-2 md:py-2.5 rounded-full font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs md:text-sm disabled:opacity-50 cursor-pointer"
+              >
+                {isSecondaryLoading ? (
+                  <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span className="hidden md:inline">{secondaryButtonText}</span>
+                    <span className="md:hidden">Draft</span>
+                  </>
+                )}
+              </button>
             )}
-          </button>
+            <button
+              onClick={() => {
+                const usedRefs = (localStory.match(/\[img[a-z0-9]+\]/g) ?? []).map(
+                  (r) => r.replace(/[\[\]]/g, "")
+                );
+                const definitions: string[] = [];
+                Object.entries(localVault).forEach(([id, data]) => {
+                  if (usedRefs.includes(id)) definitions.push(`[${id}]: ${data}`);
+                });
+                const storyPart = localStory.trim();
+                const finalContent =
+                  definitions.length > 0
+                    ? `${storyPart}\n\n${VAULT_MARKER}\n\n${definitions.join(
+                      "\n\n"
+                    )}`
+                    : storyPart;
+
+                setContent(finalContent);
+                onSave(finalContent);
+              }}
+              disabled={isSaving || (isSecondaryLoading ?? false) || !title.trim() || !localStory.trim()}
+              className="flex items-center gap-2 bg-white text-black px-4 md:px-8 py-2 md:py-2.5 rounded-full font-bold hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 cursor-pointer shadow-xl shadow-white/5 text-xs md:text-base"
+            >
+              {isSaving ? (
+                <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Save size={16} className="md:w-[18px] md:h-[18px]" />
+                  <span className="hidden md:inline">{saveButtonText}</span>
+                  <span className="md:hidden">Publish</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="hidden xl:block h-full border-l border-white/5 pl-8 py-8">
@@ -341,6 +392,7 @@ export function BaseEditor({
                 maxLength={255}
                 autoFocus={!title}
                 spellCheck={false}
+                suppressHydrationWarning
               />
             </div>
 
@@ -366,8 +418,8 @@ export function BaseEditor({
                   type="button"
                   onClick={() => { setActiveTab("write"); }}
                   className={`text-sm font-bold transition-colors cursor-pointer ${activeTab === "write"
-                      ? "text-white"
-                      : "text-slate-500 hover:text-slate-300"
+                    ? "text-white"
+                    : "text-slate-500 hover:text-slate-300"
                     }`}
                 >
                   Write
@@ -376,8 +428,8 @@ export function BaseEditor({
                   type="button"
                   onClick={() => { setActiveTab("preview"); }}
                   className={`text-sm font-bold transition-colors cursor-pointer ${activeTab === "preview"
-                      ? "text-white"
-                      : "text-slate-500 hover:text-slate-300"
+                    ? "text-white"
+                    : "text-slate-500 hover:text-slate-300"
                     }`}
                 >
                   Preview
@@ -406,8 +458,8 @@ export function BaseEditor({
                   </div>
                   <div
                     className={`overflow-hidden transition-all duration-300 ${isToolbarOpen
-                        ? "max-h-20 opacity-100"
-                        : "max-h-0 opacity-0"
+                      ? "max-h-20 opacity-100"
+                      : "max-h-0 opacity-0"
                       }`}
                   >
                     <MarkdownToolbar

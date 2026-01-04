@@ -7,7 +7,7 @@ import { api } from "~/trpc/react";
 
 interface PostGridProps {
   userId?: string;
-  type?: "all" | "user" | "liked" | "bookmarked";
+  type?: "all" | "user" | "liked" | "bookmarked" | "drafts";
 }
 
 export function PostGrid({ userId, type = "all" }: PostGridProps) {
@@ -25,7 +25,8 @@ export function PostGrid({ userId, type = "all" }: PostGridProps) {
       type === "all" ? api.post.getAll.useInfiniteQuery({ limit }, { getNextPageParam: (lastPage) => lastPage.nextCursor }) :
         type === "user" ? api.post.getByUser.useInfiniteQuery({ userId, limit }, { getNextPageParam: (lastPage) => lastPage.nextCursor }) :
           type === "liked" ? api.post.getLikedByUser.useInfiniteQuery({ userId, limit }, { getNextPageParam: (lastPage) => lastPage.nextCursor }) :
-            api.post.getBookmarkedByUser.useInfiniteQuery({ userId, limit }, { getNextPageParam: (lastPage) => lastPage.nextCursor })
+            type === "bookmarked" ? api.post.getBookmarkedByUser.useInfiniteQuery({ userId, limit }, { getNextPageParam: (lastPage) => lastPage.nextCursor }) :
+              api.post.getByUser.useInfiniteQuery({ userId, limit, status: "draft" }, { getNextPageParam: (lastPage) => lastPage.nextCursor })
     );
 
   useEffect(() => {

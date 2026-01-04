@@ -182,9 +182,9 @@ export const posts = createTable(
   "post",
   (d) => ({
     id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    title: d.varchar({ length: 255 }).notNull(),
-    slug: d.varchar({ length: 255 }).notNull().unique(),
-    content: d.text().notNull(),
+    title: d.varchar({ length: 255 }),
+    slug: d.varchar({ length: 255 }).unique(),
+    content: d.text(),
     excerpt: d.text(),
     featuredImage: d.text(),
     readingTime: d.integer(), // in minutes

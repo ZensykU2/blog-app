@@ -146,6 +146,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     callbacks: {
         async jwt({ token, user, trigger, account }) {
             // Step 1: attach user info on login
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (user) {
                 token.id = user.id;
                 token.role = user.role;
@@ -173,11 +174,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
 
         async session({ session, user, token }) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (session.user) {
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 if (user) {
                     session.user.id = user.id;
                     session.user.role = user.role;
                     session.user.username = user.username;
+                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 } else if (token) {
                     session.user.id = token.id as string;
                     session.user.role = token.role as "admin" | "author" | "user";

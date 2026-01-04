@@ -24,10 +24,11 @@ interface PostAuthor {
 
 interface Post {
   id: number;
-  title: string;
+  title: string | null;
   excerpt: string | null;
-  content: string;
-  slug: string;
+  content: string | null;
+  slug: string | null;
+  status: "published" | "draft" | "archived";
   createdAt: Date;
   readingTime: number | null;
   author: PostAuthor | null;
@@ -129,6 +130,10 @@ export function PostCard({ post, priority = false }: PostCardProps) {
       toast.success("Post deleted successfully");
       setShowDeleteModal(false);
       void utils.post.getAll.invalidate();
+      void utils.post.getByUser.invalidate();
+      void utils.post.getLikedByUser.invalidate();
+      void utils.post.getBookmarkedByUser.invalidate();
+      void utils.post.getById.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -165,17 +170,18 @@ export function PostCard({ post, priority = false }: PostCardProps) {
 
   const profileImage = getProfileImage();
   const authorName = getAuthorName();
-  const coverImages = extractImages(post.content, 4);
+  const coverImages = extractImages(post.content ?? "", 4);
 
   return (
     <>
       <div className="h-full relative block">
-        <article className="group relative flex flex-col h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/10">
+        <article className={`group relative flex flex-col h-full bg-white/5 backdrop-blur-sm border rounded-2xl overflow-hidden hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/10 ${post.status === "draft" ? "border-amber-500/30" : "border-white/10"
+          }`}>
           {/* Entire card link overlay */}
           <Link
-            href={`/post/${encodeId(post.id)}`}
+            href={post.status === "draft" ? `/edit/${encodeId(post.id)}` : `/post/${encodeId(post.id)}`}
             className="absolute inset-0 z-10"
-            aria-label={`Read ${post.title}`}
+            aria-label={`Read ${post.title ?? "Untitled"}`}
           />
 
           {/* Top Bar: Author & Date */}
@@ -208,11 +214,19 @@ export function PostCard({ post, priority = false }: PostCardProps) {
                 >
                   {getAuthorName()}
                 </Link>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-[10px] text-slate-500 font-medium flex items-center gap-1.5">
                   {getRelativeTime(new Date(post.createdAt))}
+                  {post.status === "draft" && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-slate-700" />
+                      <span className="text-amber-500 font-bold uppercase tracking-wider">Draft</span>
+                    </>
+                  )}
                 </span>
               </div>
             </div>
+
+
 
             {/* Admin/Owner Actions */}
             {isOwner && (
@@ -239,14 +253,12 @@ export function PostCard({ post, priority = false }: PostCardProps) {
           <div className="flex flex-col flex-1 p-5 min-h-0">
             {/* Title */}
             <div className="mb-2">
-              <h3 className="text-2xl font-bold text-slate-100 line-clamp-2 leading-tight group-hover:text-purple-300 transition-colors">
-                {post.title}
-              </h3>
+              {post.title ?? "Untitled Draft"}
             </div>
 
             {/* Content Preview */}
             <div className="mb-3 overflow-hidden mask-image-b min-h-0 relative">
-              <div className="line-clamp-3 text-slate-400 text-base leading-relaxed pointer-events-none">                <MarkdownRenderer content={post.content} variant="sm" />
+              <div className="line-clamp-3 text-slate-400 text-base leading-relaxed pointer-events-none">                <MarkdownRenderer content={post.content ?? ""} variant="sm" />
               </div>
             </div>
 

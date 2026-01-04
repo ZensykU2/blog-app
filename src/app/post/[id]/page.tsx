@@ -153,7 +153,7 @@ export default async function PostPage({ params }: PostPageProps) {
         </header>
 
         <div className="mb-6">
-          <MarkdownRenderer content={post.content} />
+          <MarkdownRenderer content={post.content ?? ""} />
         </div>
 
       </article>

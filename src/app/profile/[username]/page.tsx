@@ -9,6 +9,7 @@ import {
     Heart,
     Bookmark,
     User as UserIcon,
+    FileEdit,
 } from "lucide-react";
 
 import { ProfileHeader } from "../../_components/Profile/ProfileHeader";
@@ -16,7 +17,7 @@ import { PostGrid } from "../../_components/Posts/PostGrid";
 import { UserComments } from "../../_components/Profile/UserComments";
 import { api } from "~/trpc/react";
 
-type TabType = "posts" | "comments" | "liked" | "bookmarked";
+type TabType = "posts" | "comments" | "liked" | "bookmarked" | "drafts";
 
 export default function UserProfilePage() {
     const params = useParams();
@@ -51,10 +52,13 @@ export default function UserProfilePage() {
     }
 
     const tabs = [
-        { id: "posts", label: isOwner ? "My Posts" : "Posts", icon: BookOpen },
+        { id: "posts", label: isOwner ? "My Stories" : "Stories", icon: BookOpen },
         { id: "comments", label: "Comments", icon: MessageSquare },
         { id: "liked", label: "Liked", icon: Heart },
-        ...(isOwner ? [{ id: "bookmarked", label: "Bookmarked", icon: Bookmark }] : []),
+        ...(isOwner ? [
+            { id: "bookmarked", label: "Saved", icon: Bookmark },
+            { id: "drafts", label: "Drafts", icon: FileEdit }
+        ] : []),
     ] as const;
 
     const visibleTabs = tabs;
@@ -129,6 +133,16 @@ export default function UserProfilePage() {
                             <h2 className="text-2xl font-black text-white">Saved for Later</h2>
                         </div>
                         <PostGrid type="bookmarked" userId={profileUser.id} />
+                    </div>
+                )}
+
+                {activeTab === "drafts" && isOwner && (
+                    <div className="animate-fade-in">
+                        <div className="flex items-center gap-3 mb-6">
+                            <FileEdit className="text-amber-400" size={24} />
+                            <h2 className="text-2xl font-black text-white">In Progress</h2>
+                        </div>
+                        <PostGrid type="drafts" userId={profileUser.id} />
                     </div>
                 )}
             </div>
