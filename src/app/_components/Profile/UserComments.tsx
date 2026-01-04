@@ -31,21 +31,18 @@ interface GroupedComments {
 }
 
 function groupConsecutiveComments(comments: Comment[]): GroupedComments[] {
-    if (comments.length === 0) return [];
-
     const groups: GroupedComments[] = [];
-    let currentGroup: GroupedComments | null = null;
 
     for (const comment of comments) {
-        if (currentGroup?.postId !== comment.postId) {
-            currentGroup = {
+        const lastGroup = groups[groups.length - 1];
+        if (lastGroup?.postId !== comment.postId) {
+            groups.push({
                 postId: comment.postId,
                 postTitle: comment.post?.title ?? "Unknown Post",
                 comments: [comment],
-            };
-            groups.push(currentGroup);
+            });
         } else {
-            currentGroup.comments.push(comment);
+            lastGroup.comments.push(comment);
         }
     }
 
