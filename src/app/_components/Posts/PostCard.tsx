@@ -37,11 +37,6 @@ interface Post {
   tags?: { id: number; name: string; slug: string }[];
 }
 
-interface PostListCache {
-  posts: Post[];
-}
-
-type _PostCache = Post | PostListCache;
 
 interface PostCardProps {
   post: Post;
@@ -56,7 +51,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const isOwner = session?.user?.id === post.author?.id;
+  const isOwner = session?.user.id === post.author?.id;
 
   const toggleLike = api.interaction.togglePostLike.useMutation({
     onMutate: async () => {
@@ -78,7 +73,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
               return {
                 ...p,
                 isLiked: !p.isLiked,
-                likeCount: (p.likeCount ?? 0) + (p.isLiked ? -1 : 1),
+                likeCount: p.likeCount + (p.isLiked ? -1 : 1),
               };
             }
             return p;
@@ -87,7 +82,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
       });
     },
     onSettled: () => {
-      setTimeout(() => setIsLikeAnimating(false), 1000);
+      setTimeout(() => { setIsLikeAnimating(false); }, 1000);
       void utils.post.getAll.invalidate();
     },
     onError: (err) => {
@@ -121,7 +116,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
       });
     },
     onSettled: () => {
-      setTimeout(() => setIsBookmarkAnimating(false), 1000);
+      setTimeout(() => { setIsBookmarkAnimating(false); }, 1000);
       void utils.post.getAll.invalidate();
     },
     onError: (err) => {
@@ -168,6 +163,8 @@ export function PostCard({ post, priority = false }: PostCardProps) {
     return post.author?.profileImage ?? post.author?.image ?? null;
   };
 
+  const profileImage = getProfileImage();
+  const authorName = getAuthorName();
   const coverImages = extractImages(post.content, 4);
 
   return (
@@ -187,19 +184,19 @@ export function PostCard({ post, priority = false }: PostCardProps) {
               <Link
                 href={post.author?.username ? `/profile/${post.author.username}` : "#"}
                 className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-white/10 group-hover:ring-purple-500/50 transition-all"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); }}
               >
-                {getProfileImage() ? (
+                {profileImage ? (
                   <Image
-                    src={getProfileImage()!}
-                    alt={getAuthorName()}
+                    src={profileImage}
+                    alt={authorName}
                     fill
                     className="object-cover"
                     sizes="32px"
                   />
                 ) : (
                   <div className="w-full h-full bg-purple-500/20 flex items-center justify-center text-purple-200 text-xs font-bold">
-                    {getAuthorName()[0]?.toUpperCase()}
+                    {authorName[0]?.toUpperCase()}
                   </div>
                 )}
               </Link>
@@ -207,7 +204,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
                 <Link
                   href={post.author?.username ? `/profile/${post.author.username}` : "#"}
                   className="text-sm font-semibold text-slate-200 hover:text-purple-400 transition-colors"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); }}
                 >
                   {getAuthorName()}
                 </Link>
@@ -220,7 +217,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
             {/* Admin/Owner Actions */}
             {isOwner && (
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                <Link href={`/edit/${encodeId(post.id)}`} onClick={(e) => e.stopPropagation()}>
+                <Link href={`/edit/${encodeId(post.id)}`} onClick={(e) => { e.stopPropagation(); }}>
                   <button className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer">
                     <Edit2 size={14} />
                   </button>
@@ -353,13 +350,13 @@ export function PostCard({ post, priority = false }: PostCardProps) {
       <Lightbox
         images={lightboxIndex !== null ? coverImages : []}
         initialIndex={lightboxIndex ?? 0}
-        onClose={() => setLightboxIndex(null)}
+        onClose={() => { setLightboxIndex(null); }}
       />
 
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={() => deletePost.mutate({ id: post.id })}
+        onClose={() => { setShowDeleteModal(false); }}
+        onConfirm={() => { deletePost.mutate({ id: post.id }); }}
         title="Delete Post"
         description="Are you sure you want to delete this post? This action cannot be undone."
         isDeleting={deletePost.isPending}

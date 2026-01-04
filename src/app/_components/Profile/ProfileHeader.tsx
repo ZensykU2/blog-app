@@ -183,13 +183,13 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
         utils.user.getProfile.setData({ username }, (old) =>
           old
             ? {
-                ...old,
-                displayName: pendingDisplayName,
-                username: pendingUsername,
-                bio: pendingBio,
-                profileImage: pendingAvatar ?? old.profileImage,
-                bannerImage: pendingBanner ?? old.bannerImage,
-              }
+              ...old,
+              displayName: pendingDisplayName,
+              username: pendingUsername,
+              bio: pendingBio,
+              profileImage: pendingAvatar ?? old.profileImage,
+              bannerImage: pendingBanner ?? old.bannerImage,
+            }
             : undefined
         );
 
@@ -243,7 +243,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
       {cropperImage && (
         <CropperModal
           imageSrc={cropperImage}
-          onClose={() => setCropperImage(null)}
+          onClose={() => { setCropperImage(null); }}
           onCropComplete={handleCropComplete}
           aspect={croppingMode === "avatar" ? 1 : 21 / 9}
           cropShape={croppingMode === "avatar" ? "round" : "rect"}
@@ -258,20 +258,19 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
       <div className="glass-panel rounded-3xl mb-12 relative overflow-hidden group shadow-2xl">
         {/* Banner */}
         <div
-          className={`h-48 md:h-80 relative group/banner overflow-hidden ${
-            isOwner ? "cursor-pointer" : ""
-          }`}
+          className={`h-48 md:h-80 relative group/banner overflow-hidden ${isOwner ? "cursor-pointer" : ""
+            }`}
           onClick={() => {
             if (isEditingProfile) {
               handleBannerClick();
             } else {
-              setPreviewImage(pendingBanner ?? dbUser.bannerImage ?? null);
+              setPreviewImage(pendingBanner ?? dbUser.bannerImage);
             }
           }}
         >
           {(pendingBanner ?? dbUser.bannerImage) ? (
             <Image
-              src={pendingBanner ?? dbUser.bannerImage!}
+              src={pendingBanner ?? dbUser.bannerImage ?? ""}
               alt="Profile Banner"
               fill
               className="object-cover transition-transform duration-700 group-hover/banner:scale-105"
@@ -313,43 +312,41 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
           <div className="flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-10 pointer-events-auto">
             <div className="relative pointer-events-auto">
               <div
-                className={`w-32 h-32 md:w-44 md:h-44 rounded-full overflow-hidden ring-8 ring-[#0f172a]/80 shadow-2xl relative group/avatar ${
-                  isOwner ? "cursor-pointer" : ""
-                }`}
+                className={`w-32 h-32 md:w-44 md:h-44 rounded-full overflow-hidden ring-8 ring-[#0f172a]/80 shadow-2xl relative group/avatar ${isOwner ? "cursor-pointer" : ""
+                  }`}
                 onClick={() => {
                   if (isEditingProfile) {
                     handleAvatarClick();
                   } else {
                     setPreviewImage(
                       pendingAvatar ??
-                        dbUser.profileImage ??
-                        dbUser.image ??
-                        null
+                      dbUser.profileImage ??
+                      dbUser.image ??
+                      null
                     );
                   }
                 }}
               >
-                {(pendingAvatar ?? dbUser.profileImage ?? dbUser.image) ? (
-                  <Image
-                    src={
-                      (pendingAvatar ??
-                        dbUser.profileImage ??
-                        dbUser.image)!
-                    }
-                    alt={
-                      pendingDisplayName ??
-                      dbUser.username ??
-                      "Profile"
-                    }
-                    width={176}
-                    height={176}
-                    className="object-cover w-full h-full transition-transform duration-500 group-hover/avatar:scale-110"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                    <User size={64} className="text-slate-600" />
-                  </div>
-                )}
+                {(() => {
+                  const avatar = pendingAvatar ?? dbUser.profileImage ?? dbUser.image;
+                  return avatar ? (
+                    <Image
+                      src={avatar}
+                      alt={
+                        pendingDisplayName !== ""
+                          ? pendingDisplayName
+                          : (dbUser.username ?? "Profile")
+                      }
+                      width={176}
+                      height={176}
+                      className="object-cover w-full h-full transition-transform duration-500 group-hover/avatar:scale-110"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                      <User size={64} className="text-slate-600" />
+                    </div>
+                  );
+                })()}
 
                 {isOwner && isEditingProfile && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity backdrop-blur-[2px] rounded-full">
@@ -367,8 +364,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                     <input
                       type="text"
                       value={pendingDisplayName}
-                      onChange={(e) =>
-                        setPendingDisplayName(e.target.value)
+                      onChange={(e) => { setPendingDisplayName(e.target.value); }
                       }
                       placeholder="Display Name"
                       className="text-2xl md:text-3xl font-black text-white bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:border-purple-500/50 w-full"
@@ -379,12 +375,13 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                       <input
                         type="text"
                         value={pendingUsername}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setPendingUsername(
                             e.target.value
                               .toLowerCase()
                               .replace(/[^a-z0-9_]/g, "")
-                          )
+                          );
+                        }
                         }
                         placeholder="username"
                         className="bg-transparent text-white font-bold tracking-wider outline-none w-full"
@@ -443,7 +440,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                     </div>
                   ) : (
                     <button
-                      onClick={() => setIsEditingProfile(true)}
+                      onClick={() => { setIsEditingProfile(true); }}
                       className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-all border border-white/10 cursor-pointer pointer-events-auto shadow-xl backdrop-blur-md w-full sm:w-auto"
                     >
                       <Settings size={18} />
@@ -463,16 +460,15 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
               <div className="space-y-4 animate-fade-in bg-white/5 p-6 rounded-3xl border border-white/10 shadow-inner">
                 <TextareaAutosize
                   value={pendingBio}
-                  onChange={(e) => setPendingBio(e.target.value)}
+                  onChange={(e) => { setPendingBio(e.target.value); }}
                   placeholder="Tell the world your story..."
                   className="w-full bg-transparent text-slate-200 placeholder-slate-500 focus:outline-none transition-all min-h-[120px] resize-none text-lg leading-relaxed text-center md:text-left"
                 />
               </div>
             ) : (
               <div
-                className={`group/bio transition-all relative flex flex-col items-center md:items-start text-center md:text-left ${
-                  isOwner ? "hover:translate-x-1" : ""
-                }`}
+                className={`group/bio transition-all relative flex flex-col items-center md:items-start text-center md:text-left ${isOwner ? "hover:translate-x-1" : ""
+                  }`}
               >
                 <div className="flex items-center gap-3 text-slate-500 mb-3">
                   <span className="text-[10px] font-black uppercase tracking-[0.3em] bg-white/5 px-3 py-1 rounded-full border border-white/5">
@@ -494,7 +490,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
       <Lightbox
         images={previewImage ? [previewImage] : []}
         initialIndex={0}
-        onClose={() => setPreviewImage(null)}
+        onClose={() => { setPreviewImage(null); }}
       />
     </>
   );

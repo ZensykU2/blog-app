@@ -1,7 +1,5 @@
-import "dotenv/config";
 import { db } from "~/server/db";
 import { tags } from "~/server/db/schema";
-import { sql } from "drizzle-orm";
 
 const initialTags = [
     "Technology",
@@ -51,7 +49,6 @@ const initialTags = [
 
 function slugify(text: string) {
     return text
-        .toString()
         .toLowerCase()
         .trim()
         .replace(/\s+/g, "-") // Replace spaces with -

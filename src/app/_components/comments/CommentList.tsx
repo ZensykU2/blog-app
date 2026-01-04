@@ -85,7 +85,7 @@ export function CommentList({ postId, postAuthorId }: CommentListProps) {
                                 <div className="flex gap-3 justify-center mt-8">
                                     {hasMoreComments && (
                                         <button
-                                            onClick={() => setVisibleCommentsCount(prev => prev + 5)}
+                                            onClick={() => { setVisibleCommentsCount(prev => prev + 5); }}
                                             className="px-8 py-3 rounded-full glass-button text-purple-400 font-bold hover:bg-purple-500/10 transition-all cursor-pointer border border-purple-500/20"
                                         >
                                             More Comments ({rootComments.length - visibleCommentsCount} remaining)

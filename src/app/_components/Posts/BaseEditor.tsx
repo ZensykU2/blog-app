@@ -128,7 +128,7 @@ export function BaseEditor({
       }
     }, 2500);
 
-    return () => clearTimeout(timeout);
+    return () => { clearTimeout(timeout); };
   }, [localStory, localVault, isInitialized, setContent, content, VAULT_MARKER]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -147,8 +147,8 @@ export function BaseEditor({
     const isDirty =
       title !== initialTitle ||
       content !== initialContent ||
-      JSON.stringify([...selectedTags].sort()) !==
-        JSON.stringify([...initialTags].sort());
+      JSON.stringify([...selectedTags].sort((a, b) => a - b)) !==
+      JSON.stringify([...initialTags].sort((a, b) => a - b));
 
     if (isDirty && (title.trim() || content.trim() || selectedTags.length > 0)) {
       setShowBackModal(true);
@@ -273,8 +273,8 @@ export function BaseEditor({
               const finalContent =
                 definitions.length > 0
                   ? `${storyPart}\n\n${VAULT_MARKER}\n\n${definitions.join(
-                      "\n\n"
-                    )}`
+                    "\n\n"
+                  )}`
                   : storyPart;
 
               setContent(finalContent);
@@ -336,7 +336,7 @@ export function BaseEditor({
                 type="text"
                 placeholder="Title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => { setTitle(e.target.value); }}
                 className="w-full bg-transparent text-5xl md:text-6xl font-black placeholder-white/20 border-none outline-none resize-none tracking-tight pb-4 border-b border-transparent group-focus-within:border-white/10 transition-colors"
                 maxLength={255}
                 autoFocus={!title}
@@ -364,23 +364,21 @@ export function BaseEditor({
               <div className="flex gap-4 border-b border-white/10 pb-4 mt-4">
                 <button
                   type="button"
-                  onClick={() => setActiveTab("write")}
-                  className={`text-sm font-bold transition-colors cursor-pointer ${
-                    activeTab === "write"
+                  onClick={() => { setActiveTab("write"); }}
+                  className={`text-sm font-bold transition-colors cursor-pointer ${activeTab === "write"
                       ? "text-white"
                       : "text-slate-500 hover:text-slate-300"
-                  }`}
+                    }`}
                 >
                   Write
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("preview")}
-                  className={`text-sm font-bold transition-colors cursor-pointer ${
-                    activeTab === "preview"
+                  onClick={() => { setActiveTab("preview"); }}
+                  className={`text-sm font-bold transition-colors cursor-pointer ${activeTab === "preview"
                       ? "text-white"
                       : "text-slate-500 hover:text-slate-300"
-                  }`}
+                    }`}
                 >
                   Preview
                 </button>
@@ -396,7 +394,7 @@ export function BaseEditor({
                     </span>
                     <button
                       type="button"
-                      onClick={() => setIsToolbarOpen(!isToolbarOpen)}
+                      onClick={() => { setIsToolbarOpen(!isToolbarOpen); }}
                       className="p-1 text-slate-500 hover:text-white transition-colors rounded hover:bg-white/10 cursor-pointer"
                     >
                       {isToolbarOpen ? (
@@ -407,11 +405,10 @@ export function BaseEditor({
                     </button>
                   </div>
                   <div
-                    className={`overflow-hidden transition-all duration-300 ${
-                      isToolbarOpen
+                    className={`overflow-hidden transition-all duration-300 ${isToolbarOpen
                         ? "max-h-20 opacity-100"
                         : "max-h-0 opacity-0"
-                    }`}
+                      }`}
                   >
                     <MarkdownToolbar
                       onInsert={handleMarkdownInsert}
@@ -465,7 +462,7 @@ export function BaseEditor({
 
       <Modal
         isOpen={showBackModal}
-        onClose={() => setShowBackModal(false)}
+        onClose={() => { setShowBackModal(false); }}
         title="Unsaved Changes"
         description="Do you want to save your work as a draft before leaving?"
       >
@@ -483,7 +480,7 @@ export function BaseEditor({
             Discard Changes
           </button>
           <button
-            onClick={() => setShowBackModal(false)}
+            onClick={() => { setShowBackModal(false); }}
             className="w-full py-3 rounded-xl bg-white/5 text-slate-400 font-semibold hover:bg-white/10 transition-all cursor-pointer"
           >
             Keep Editing
@@ -494,7 +491,7 @@ export function BaseEditor({
       {croppingImage && (
         <CropperModal
           imageSrc={croppingImage}
-          onClose={() => setCroppingImage(null)}
+          onClose={() => { setCroppingImage(null); }}
           onCropComplete={handleCropComplete}
           cropShape="rect"
           aspect={16 / 9}

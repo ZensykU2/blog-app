@@ -97,7 +97,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
-                if (!credentials?.email || !credentials?.password) return null;
+                if (!credentials.email || !credentials.password) return null;
 
                 const email = credentials.email as string;
                 const password = credentials.password as string;
@@ -129,7 +129,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     events: {
         // Automatically generate username for Google users
         async createUser({ user }) {
-            if (user?.id && user?.email && !user?.username) {
+            if (user.id && user.email && !user.username) {
                 const username = await generateUniqueUsername(user.email, user.name);
 
                 await db
@@ -153,7 +153,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
 
             // Step 2: always refresh data for Google provider or first login
-            if ((account?.provider === "google" || trigger === "update" || user) && token.id) {
+            if ((account?.provider === "google" || trigger === "update") && token.id) {
                 const dbUser = await db
                     .select()
                     .from(users)
@@ -172,11 +172,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return token;
         },
 
-        async session({ session, token }) {
-            if (token) {
-                session.user.id = token.id as string;
-                session.user.role = token.role as "admin" | "author" | "user";
-                session.user.username = token.username as string | null;
+        async session({ session, user, token }) {
+            if (session.user) {
+                if (user) {
+                    session.user.id = user.id;
+                    session.user.role = user.role;
+                    session.user.username = user.username;
+                } else if (token) {
+                    session.user.id = token.id as string;
+                    session.user.role = token.role as "admin" | "author" | "user";
+                    session.user.username = token.username as string | null;
+                }
             }
             return session;
         },

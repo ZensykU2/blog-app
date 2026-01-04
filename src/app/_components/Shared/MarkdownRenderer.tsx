@@ -108,7 +108,7 @@ export function MarkdownRenderer({
                   className="rounded-xl shadow-2xl border border-white/10 max-w-full h-auto mx-auto cursor-pointer hover:opacity-90 transition-opacity"
                   loading="lazy"
                   unoptimized={finalSrc.startsWith("data:")}
-                  onClick={() => setPreviewImage(finalSrc ?? null)}
+                  onClick={() => { setPreviewImage(finalSrc); }}
                 />
               </span>
             );
@@ -121,9 +121,8 @@ export function MarkdownRenderer({
 
             return isInline ? (
               <code
-                className={`${
-                  className ?? ""
-                } text-purple-300 font-bold px-1.5 py-0.5 rounded-md bg-white/5 border border-white/5`}
+                className={`${className ?? ""
+                  } text-purple-300 font-bold px-1.5 py-0.5 rounded-md bg-white/5 border border-white/5`}
                 {...props}
               >
                 {children}
@@ -142,7 +141,7 @@ export function MarkdownRenderer({
       <Lightbox
         images={previewImage ? [previewImage] : []}
         initialIndex={0}
-        onClose={() => setPreviewImage(null)}
+        onClose={() => { setPreviewImage(null); }}
       />
     </div>
   );

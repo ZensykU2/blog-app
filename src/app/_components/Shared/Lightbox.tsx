@@ -60,13 +60,13 @@ export function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
   const goToPrevious = useCallback(() => {
     setDirection("right");
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
-    setTimeout(() => setDirection(null), 300);
+    setTimeout(() => { setDirection(null); }, 300);
   }, [images.length]);
 
   const goToNext = useCallback(() => {
     setDirection("left");
     setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
-    setTimeout(() => setDirection(null), 300);
+    setTimeout(() => { setDirection(null); }, 300);
   }, [images.length]);
 
   // Keyboard navigation — now all deps are stable
@@ -82,7 +82,7 @@ export function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => { window.removeEventListener("keydown", handleKeyDown); };
   }, [goToNext, goToPrevious, onClose]);
 
   if (images.length === 0 || !mounted || typeof document === "undefined") return null;
@@ -102,7 +102,7 @@ export function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
         width: "100vw",
         height: "100vh",
       }}
-      onClick={() => onClose()}
+      onClick={() => { onClose(); }}
     >
       <button
         className="absolute top-6 right-6 p-4 text-white/50 hover:text-white transition-all z-[1000001] bg-white/5 hover:bg-white/10 rounded-full border border-white/10 backdrop-blur-md flex items-center justify-center cursor-pointer"
@@ -147,24 +147,23 @@ export function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
 
       <div className="relative w-full h-full max-w-[95vw] max-h-[90vh] flex items-center justify-center pointer-events-none overflow-hidden">
         <div
-          className={`relative w-full h-full flex items-center justify-center transition-all duration-300 ${
-            direction === "left"
+          className={`relative w-full h-full flex items-center justify-center transition-all duration-300 ${direction === "left"
               ? "animate-slide-left"
               : direction === "right"
-              ? "animate-slide-right"
-              : ""
-          }`}
+                ? "animate-slide-right"
+                : ""
+            }`}
         >
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e) => { e.stopPropagation(); }}>
             <Image
               key={currentIndex}
-              src={currentImage!}
+              src={currentImage ?? ""}
               alt={`Image ${currentIndex + 1}`}
               fill
               className="object-contain"
               priority
               sizes="95vw"
-              unoptimized={currentImage?.startsWith("data:")}
+              unoptimized={currentImage?.startsWith("data:") ?? false}
             />
           </div>
         </div>

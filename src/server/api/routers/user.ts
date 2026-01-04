@@ -41,7 +41,7 @@ export const userRouter = createTRPCRouter({
         }),
 
     updateBanner: protectedProcedure
-        .input(z.object({ bannerImage: z.string().url() }))
+        .input(z.object({ bannerImage: (z as typeof z & { url: () => z.ZodString }).url() }))
         .mutation(async ({ ctx, input }) => {
             await ctx.db
                 .update(users)

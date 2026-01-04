@@ -32,7 +32,7 @@ export const commentRouter = createTRPCRouter({
                 .where(eq(comments.postId, input.postId))
                 .orderBy(desc(comments.createdAt));
 
-            const userId = ctx.session?.user?.id;
+            const userId = ctx.session?.user.id;
 
             const commentsWithData = await Promise.all(
                 allComments.map(async (comment) => {
@@ -176,7 +176,7 @@ export const commentRouter = createTRPCRouter({
             cursor: z.number().nullish(), // cursor is the page number
         }))
         .query(async ({ ctx, input }) => {
-            const targetUserId = input.userId ?? ctx.session?.user?.id;
+            const targetUserId = input.userId ?? ctx.session?.user.id;
             if (!targetUserId) {
                 throw new TRPCError({ code: "BAD_REQUEST", message: "User ID is required" });
             }
@@ -213,7 +213,7 @@ export const commentRouter = createTRPCRouter({
                 .limit(input.limit)
                 .offset(offset);
 
-            const viewerId = ctx.session?.user?.id;
+            const viewerId = ctx.session?.user.id;
 
             const commentsWithData = await Promise.all(
                 userComments.map(async (comment) => {

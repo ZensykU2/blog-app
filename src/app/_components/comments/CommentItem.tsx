@@ -108,9 +108,9 @@ export function CommentItem({
         },
     });
 
-    const isAdmin = session?.user?.role === "admin";
-    const isAuthor = session?.user?.id === comment.authorId;
-    const isPostAuthor = session?.user?.id === postAuthorId;
+    const isAdmin = session?.user.role === "admin";
+    const isAuthor = session?.user.id === comment.authorId;
+    const isPostAuthor = session?.user.id === postAuthorId;
 
     // author / post owner / admin can delete
     const canDelete = isAuthor || isPostAuthor || isAdmin;
@@ -127,7 +127,7 @@ export function CommentItem({
             ? comment.content.slice(0, CHAR_LIMIT) + "..."
             : comment.content;
 
-    const handleDelete = () => setShowDeleteModal(true);
+    const handleDelete = () => { setShowDeleteModal(true); };
 
     const confirmDelete = () => {
         setIsDeleting(true);
@@ -166,19 +166,23 @@ export function CommentItem({
                     }
                     className="flex-shrink-0 transition-transform hover:scale-110"
                 >
-                    {comment.author?.profileImage ?? comment.author?.image ? (
-                        <Image
-                            src={(comment.author.profileImage ?? comment.author?.image)!}
-                            alt={getAuthorName()}
-                            width={40}
-                            height={40}
-                            className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
-                        />
-                    ) : (
-                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-white/10">
-                            <UserIcon size={20} className="text-slate-400" />
-                        </div>
-                    )}
+                    {(() => {
+                        const author = comment.author;
+                        const profileImage = author?.profileImage ?? author?.image;
+                        return profileImage ? (
+                            <Image
+                                src={profileImage}
+                                alt={getAuthorName()}
+                                width={40}
+                                height={40}
+                                className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-white/10">
+                                <UserIcon size={20} className="text-slate-400" />
+                            </div>
+                        );
+                    })()}
                 </Link>
 
                 <div className="flex-1 min-w-0">
@@ -232,7 +236,7 @@ export function CommentItem({
                                     setIsEditing(false);
                                     onUpdate();
                                 }}
-                                onCancel={() => setIsEditing(false)}
+                                onCancel={() => { setIsEditing(false); }}
                             />
                         </div>
                     ) : (
@@ -244,7 +248,7 @@ export function CommentItem({
 
                                 {isLongComment && (
                                     <button
-                                        onClick={() => setIsExpanded(!isExpanded)}
+                                        onClick={() => { setIsExpanded(!isExpanded); }}
                                         className="mt-1 text-xs font-bold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 cursor-pointer p-0 border-none bg-transparent"
                                     >
                                         {isExpanded ? (
@@ -262,8 +266,7 @@ export function CommentItem({
 
                             <div className="flex items-center justify-start gap-4">
                                 <button
-                                    onClick={() =>
-                                        toggleLike.mutate({ commentId: comment.id })
+                                    onClick={() => { toggleLike.mutate({ commentId: comment.id }); }
                                     }
                                     className={`flex items-center gap-1.5 transition-colors hover:text-pink-400 ${isLiked ? "text-pink-500" : "text-slate-500"
                                         }`}
@@ -277,7 +280,7 @@ export function CommentItem({
 
                                 {status === "authenticated" && (
                                     <button
-                                        onClick={() => setIsReplying(!isReplying)}
+                                        onClick={() => { setIsReplying(!isReplying); }}
                                         className="text-xs font-bold text-slate-500 hover:text-purple-400 transition-colors cursor-pointer p-0 border-none bg-transparent"
                                     >
                                         {isReplying ? "Cancel Reply" : "Reply"}
@@ -294,7 +297,7 @@ export function CommentItem({
                                             setIsReplying(false);
                                             onUpdate();
                                         }}
-                                        onCancel={() => setIsReplying(false)}
+                                        onCancel={() => { setIsReplying(false); }}
                                     />
                                 </div>
                             )}
@@ -315,8 +318,7 @@ export function CommentItem({
                                     <div className="flex gap-3 items-center mt-4 pt-2">
                                         {hasMoreReplies && (
                                             <button
-                                                onClick={() =>
-                                                    setVisibleRepliesCount((prev) => prev + 5)
+                                                onClick={() => { setVisibleRepliesCount((prev) => prev + 5); }
                                                 }
                                                 className="text-[11px] font-bold text-purple-400 hover:text-white transition-all cursor-pointer bg-purple-500/10 hover:bg-purple-500/20 px-4 py-2 rounded-lg border border-purple-500/20"
                                             >
@@ -326,7 +328,7 @@ export function CommentItem({
                                         )}
                                         {visibleRepliesCount > 5 && (
                                             <button
-                                                onClick={() => setVisibleRepliesCount(5)}
+                                                onClick={() => { setVisibleRepliesCount(5); }}
                                                 className="text-[11px] font-bold text-slate-400 hover:text-white transition-all cursor-pointer bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg border border-white/10"
                                             >
                                                 Close Thread
@@ -343,7 +345,7 @@ export function CommentItem({
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 absolute top-5 right-5">
                         {canEdit && (
                             <button
-                                onClick={() => setIsEditing(true)}
+                                onClick={() => { setIsEditing(true); }}
                                 className="p-2 text-slate-500 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all cursor-pointer"
                                 title="Edit comment"
                             >
@@ -368,7 +370,7 @@ export function CommentItem({
 
             <DeleteConfirmationModal
                 isOpen={showDeleteModal}
-                onClose={() => setShowDeleteModal(false)}
+                onClose={() => { setShowDeleteModal(false); }}
                 onConfirm={confirmDelete}
                 title="Delete Comment"
                 description="Are you sure you want to delete this comment? This action cannot be undone."

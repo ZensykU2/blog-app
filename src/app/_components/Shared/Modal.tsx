@@ -26,7 +26,7 @@ export function Modal({
 
     useEffect(() => {
         setMounted(true);
-        return () => setMounted(false);
+        return () => { setMounted(false); };
     }, []);
 
     useEffect(() => {
@@ -34,9 +34,9 @@ export function Modal({
             setIsVisible(true);
             document.body.style.overflow = "hidden";
         } else {
-            const timer = setTimeout(() => setIsVisible(false), 300);
+            const timer = setTimeout(() => { setIsVisible(false); }, 300);
             document.body.style.overflow = "unset";
-            return () => clearTimeout(timer);
+            return () => { clearTimeout(timer); };
         }
     }, [isOpen]);
 

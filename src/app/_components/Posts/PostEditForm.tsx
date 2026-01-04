@@ -43,7 +43,7 @@ export function PostEditForm({ post }: PostEditFormProps) {
 
   const updatePost = api.post.update.useMutation({
     onSuccess: (data) => {
-      localStorage.removeItem(`post_draft_${post.id}`);
+      localStorage.removeItem(`post_draft_${String(post.id)}`);
       // Invalidate all feed queries to show updated images immediately
       void utils.post.getAll.invalidate();
       void utils.post.getByUser.invalidate();
@@ -62,7 +62,7 @@ export function PostEditForm({ post }: PostEditFormProps) {
 
   // Load draft on mount if it exists
   useEffect(() => {
-    const savedDraft = localStorage.getItem(`post_draft_${post.id}`);
+    const savedDraft = localStorage.getItem(`post_draft_${String(post.id)}`);
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft) as PostDraft;
@@ -81,9 +81,9 @@ export function PostEditForm({ post }: PostEditFormProps) {
   useEffect(() => {
     if (!hasLoadedDraft || updatePost.isPending || updatePost.isSuccess) return;
     const timeout = setTimeout(() => {
-      localStorage.setItem(`post_draft_${post.id}`, JSON.stringify({ title, content, tags: selectedTags }));
+      localStorage.setItem(`post_draft_${String(post.id)}`, JSON.stringify({ title, content, tags: selectedTags }));
     }, 1000);
-    return () => clearTimeout(timeout);
+    return () => { clearTimeout(timeout); };
   }, [title, content, selectedTags, post.id, hasLoadedDraft, updatePost.isPending, updatePost.isSuccess]);
 
   const handleSubmit = (finalContent?: string) => {
@@ -112,11 +112,11 @@ export function PostEditForm({ post }: PostEditFormProps) {
       selectedTags={selectedTags}
       setSelectedTags={setSelectedTags}
       onSave={handleSubmit}
-      onBack={() => router.push(`/post/${encodeId(post.id)}`)}
+      onBack={() => { router.push(`/post/${encodeId(post.id)}`); }}
       isSaving={updatePost.isPending || updatePost.isSuccess}
       saveButtonText={updatePost.isSuccess ? "Redirecting..." : "Update"}
       backButtonText="Back to Post"
-      _draftKey={`post_draft_${post.id}`}
+      _draftKey={`post_draft_${String(post.id)}`}
       _hasLoadedDraft={hasLoadedDraft}
       onDiscardDraft={onDiscardDraft}
       initialTitle={post.title}

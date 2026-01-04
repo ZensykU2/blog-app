@@ -72,7 +72,7 @@ export default function UserProfilePage() {
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as TabType)}
+                                onClick={() => { setActiveTab(tab.id as TabType); }}
                                 className={`
                     flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer whitespace-nowrap
                     ${isActive

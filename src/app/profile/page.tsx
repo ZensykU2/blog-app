@@ -10,7 +10,7 @@ export default function ProfilePage() {
 
     useEffect(() => {
         if (status !== 'loading') {
-            if (session?.user?.username) {
+            if (session?.user.username) {
                 router.replace(`/profile/${session.user.username}`);
             } else if (session?.user) {
                 // User is logged in but has no username, redirect to home

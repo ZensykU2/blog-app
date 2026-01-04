@@ -11,5 +11,5 @@ export function encodeId(id: number): string {
 
 export function decodeId(hash: string): number | null {
     const decoded = sqids.decode(hash);
-    return decoded.length > 0 ? decoded[0]! : null;
+    return decoded[0] ?? null;
 }

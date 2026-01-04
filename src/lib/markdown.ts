@@ -28,7 +28,7 @@ export const insertMarkdown = (
     } else if (type === 'link') {
         newText = `${before}[${selection || 'Link'}](url)${after}`;
         newCursorPos = start + (selection || 'Link').length + 3; // Position inside (url) part approximately
-    } else if (type === 'image') {
+    } else {
         newText = `${before}${syntax}${after}`;
         newCursorPos = start + syntax.length;
     }

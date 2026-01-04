@@ -25,7 +25,7 @@ export function UserMenu() {
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        return () => { document.removeEventListener("mousedown", handleClickOutside); };
     }, []);
 
     if (!session?.user) return null;
@@ -37,7 +37,7 @@ export function UserMenu() {
     return (
         <div className="relative pl-2 border-l border-white/10" ref={dropdownRef}>
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => { setIsOpen(!isOpen); }}
                 className="flex items-center gap-2 group focus:outline-none cursor-pointer"
             >
                 <div className="h-9 w-9 rounded-full ring-2 ring-white/10 transition-all group-hover:ring-purple-500/50 overflow-hidden relative">
@@ -71,7 +71,7 @@ export function UserMenu() {
                     <div className="p-1.5">
                         <Link
                             href="/profile"
-                            onClick={() => setIsOpen(false)}
+                            onClick={() => { setIsOpen(false); }}
                             className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-200 hover:text-white hover:bg-white/5 rounded-lg transition-colors group"
                         >
                             <User size={16} className="text-slate-400 group-hover:text-purple-400 transition-colors" />

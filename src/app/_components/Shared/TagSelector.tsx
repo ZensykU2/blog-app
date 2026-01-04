@@ -24,7 +24,7 @@ export function TagSelector({ selectedTagIds, onChange, maxTags = 5 }: TagSelect
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        return () => { document.removeEventListener("mousedown", handleClickOutside); };
     }, []);
 
     const filteredTags = query === ""
@@ -65,7 +65,7 @@ export function TagSelector({ selectedTagIds, onChange, maxTags = 5 }: TagSelect
                     >
                         {getTagName(id)}
                         <button
-                            onClick={() => removeTag(id)}
+                            onClick={() => { removeTag(id); }}
                             className="ml-1 rounded-full p-0.5 hover:bg-purple-500/20 text-purple-400 hover:text-white transition-colors cursor-pointer"
                         >
                             <X size={14} />
@@ -80,7 +80,7 @@ export function TagSelector({ selectedTagIds, onChange, maxTags = 5 }: TagSelect
             {/* Input / Dropdown Trigger */}
             <div
                 className="relative cursor-pointer"
-                onClick={() => !isLoading && setIsOpen(!isOpen)}
+                onClick={() => { if (!isLoading) setIsOpen(!isOpen); }}
             >
                 <div className="glass-panel w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-4 pr-10 text-sm leading-5 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-left text-slate-200">
                     <input
@@ -93,8 +93,8 @@ export function TagSelector({ selectedTagIds, onChange, maxTags = 5 }: TagSelect
                             if (!isOpen) setIsOpen(true);
                         }}
                         disabled={selectedTagIds.length >= maxTags && !isOpen}
-                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking input
-                        onFocus={() => setIsOpen(true)}
+                        onClick={(e) => { e.stopPropagation(); }} // Prevent closing when clicking input
+                        onFocus={() => { setIsOpen(true); }}
                     />
                     <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400">
                         <ChevronsUpDown size={20} />
@@ -121,7 +121,7 @@ export function TagSelector({ selectedTagIds, onChange, maxTags = 5 }: TagSelect
                     ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-500/20 hover:text-white'}
                     ${isSelected ? 'bg-purple-500/10 text-purple-300' : 'text-slate-300'}
                   `}
-                                    onClick={() => !isDisabled && toggleTag(tag.id)}
+                                    onClick={() => { if (!isDisabled) toggleTag(tag.id); }}
                                 >
                                     <span className={`block truncate ${isSelected ? 'font-medium' : 'font-normal'}`}>
                                         {tag.name}

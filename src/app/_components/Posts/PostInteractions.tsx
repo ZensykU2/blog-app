@@ -125,7 +125,7 @@ export function PostInteractions({
             }
             setIsLiked(initialIsLiked);
             setLikes(initialLikes);
-            toast.error(err.message ?? "Something went wrong");
+            toast.error(err.message);
         },
     });
 
@@ -179,7 +179,7 @@ export function PostInteractions({
                 utils.post.getById.setData({ id: postId }, context.previousPost);
             }
             setIsBookmarked(initialIsBookmarked);
-            toast.error(err.message ?? "Something went wrong");
+            toast.error(err.message);
         },
     });
 
@@ -191,7 +191,7 @@ export function PostInteractions({
     return (
         <div className="flex items-center gap-4 py-6 border-t border-white/5 my-8">
             <button
-                onClick={() => toggleLike.mutate({ postId })}
+                onClick={() => { toggleLike.mutate({ postId }); }}
                 className={`flex items-center gap-2 transition-all hover:scale-105 cursor-pointer px-4 py-2 rounded-full border ${isLiked ? "bg-pink-500/10 border-pink-500/20 text-pink-500" : "bg-white/5 border-white/5 text-slate-400 hover:text-slate-200"}`}
             >
                 <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
@@ -199,7 +199,7 @@ export function PostInteractions({
             </button>
 
             <button
-                onClick={() => toggleBookmark.mutate({ postId })}
+                onClick={() => { toggleBookmark.mutate({ postId }); }}
                 className={`flex items-center gap-2 transition-all hover:scale-105 cursor-pointer px-4 py-2 rounded-full border ${isBookmarked ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-500" : "bg-white/5 border-white/5 text-slate-400 hover:text-slate-200"}`}
             >
                 <Bookmark size={18} fill={isBookmarked ? "currentColor" : "none"} />

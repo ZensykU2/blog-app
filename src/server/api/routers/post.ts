@@ -47,7 +47,7 @@ export const postRouter = createTRPCRouter({
         .orderBy(desc(posts.createdAt))
         .limit(limit + 1); // Fetch one extra to check for hasMore
 
-      const userId = ctx.session?.user?.id;
+      const userId = ctx.session?.user.id;
 
       const postsWithAuthors = await Promise.all(
         allPosts.map(async (post) => {
@@ -141,7 +141,7 @@ export const postRouter = createTRPCRouter({
 
       if (!post[0]) return null;
 
-      const userId = ctx.session?.user?.id;
+      const userId = ctx.session?.user.id;
       const targetPost = post[0];
 
       const [likeCountResult] = await ctx.db
@@ -420,7 +420,7 @@ export const postRouter = createTRPCRouter({
 
     if (!post[0]) return null;
 
-    const userId = ctx.session?.user?.id;
+    const userId = ctx.session?.user.id;
     const targetPost = post[0];
 
     const [likeCountResult] = await ctx.db

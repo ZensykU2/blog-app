@@ -23,7 +23,7 @@ export function FormattingGuide() {
         <div className="glass-panel rounded-xl border border-white/5 overflow-hidden transition-all duration-300">
             <button
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => { setIsOpen(!isOpen); }}
                 className="w-full flex items-center justify-between p-4 text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
             >
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider">

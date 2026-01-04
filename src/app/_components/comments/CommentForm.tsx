@@ -35,7 +35,7 @@ export function CommentForm({
     enabled: !!session?.user,
   });
 
-  const avatarSrc = currentUser?.profileImage ?? session?.user?.image ?? "";
+  const avatarSrc = currentUser?.profileImage ?? session?.user.image ?? "";
 
   const createComment = api.comment.create.useMutation({
     onSuccess: () => {
@@ -93,7 +93,7 @@ export function CommentForm({
           <Image
             key={avatarSrc} // ensures React re-renders if image changes
             src={avatarSrc}
-            alt={session?.user?.name ?? "User"}
+            alt={session?.user.name ?? "User"}
             width={40}
             height={40}
             className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
@@ -104,7 +104,7 @@ export function CommentForm({
           <div className="relative group">
             <TextareaAutosize
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => { setContent(e.target.value); }}
               placeholder={
                 isUpdate ? "Edit your comment..." : "Write a comment..."
               }

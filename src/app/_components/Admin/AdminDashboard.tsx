@@ -112,13 +112,13 @@ export default function AdminDashboard() {
                                         <select
                                             value={user.role}
                                             onChange={(e) =>
-                                                updateRole.mutate({
+                                                { updateRole.mutate({
                                                     userId: user.id,
                                                     role: e.target.value as
                                                         | "admin"
                                                         | "author"
                                                         | "user",
-                                                })
+                                                }); }
                                             }
                                             className="bg-white/5 border border-white/10 rounded-lg px-3 py-1 text-white text-sm"
                                         >
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
                                     <td className="p-4 text-right">
                                         <button
                                             onClick={() =>
-                                                setUserToDelete(user.id)
+                                                { setUserToDelete(user.id); }
                                             }
                                             className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors cursor-pointer"
                                         >
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
 
             <DeleteConfirmationModal
                 isOpen={!!userToDelete}
-                onClose={() => setUserToDelete(null)}
+                onClose={() => { setUserToDelete(null); }}
                 onConfirm={() => {
                     if (userToDelete) {
                         deleteUser.mutate({ userId: userToDelete });

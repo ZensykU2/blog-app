@@ -1,7 +1,10 @@
+import { createRequire } from "node:module";
 import { FlatCompat } from "@eslint/eslintrc";
 import tseslint from "typescript-eslint";
 // @ts-ignore -- no types for this plugin
 import drizzle from "eslint-plugin-drizzle";
+
+const require = createRequire(import.meta.url);
 
 const compat = new FlatCompat({
   baseDirectory: import.meta.dirname,
@@ -11,17 +14,16 @@ export default tseslint.config(
   {
     ignores: [".next"],
   },
-  ...compat.extends("next/core-web-vitals"),
+  ...compat.extends(
+    "next/core-web-vitals",
+    require.resolve("@vercel/style-guide/eslint/next"),
+    require.resolve("@vercel/style-guide/eslint/typescript"),
+  ),
   {
     files: ["**/*.ts", "**/*.tsx"],
     plugins: {
       drizzle,
     },
-    extends: [
-      ...tseslint.configs.recommended,
-      ...tseslint.configs.recommendedTypeChecked,
-      ...tseslint.configs.stylisticTypeChecked,
-    ],
     rules: {
       "@typescript-eslint/array-type": "off",
       "@typescript-eslint/consistent-type-definitions": "off",
@@ -38,6 +40,11 @@ export default tseslint.config(
         "error",
         { checksVoidReturn: { attributes: false } },
       ],
+      "@typescript-eslint/restrict-template-expressions": [
+        "error",
+        { allowNumber: true, allowAny: true },
+      ],
+      "@typescript-eslint/explicit-function-return-type": "off",
       "drizzle/enforce-delete-with-where": [
         "error",
         { drizzleObjectName: ["db", "ctx.db"] },
@@ -46,6 +53,7 @@ export default tseslint.config(
         "error",
         { drizzleObjectName: ["db", "ctx.db"] },
       ],
+      "import/no-default-export": "off",
     },
   },
   {

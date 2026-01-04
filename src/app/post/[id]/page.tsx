@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 export default async function PostPage({ params }: PostPageProps) {
   const { id } = await params;
   const session = await auth();
-  const userId = session?.user?.id;
+  const userId = session?.user.id;
 
   const postId = decodeId(id);
 
@@ -73,19 +73,23 @@ export default async function PostPage({ params }: PostPageProps) {
                 href={post.author?.username ? `/profile/${post.author.username}` : "#"}
                 className="transition-transform hover:scale-110"
               >
-                {(post.author?.profileImage ?? post.author?.image) ? (
-                  <Image
-                    src={(post.author.profileImage ?? post.author?.image)!}
-                    alt={getAuthorName()}
-                    width={40}
-                    height={40}
-                    className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-white/5 ring-2 ring-white/10 flex items-center justify-center">
-                    <User size={20} className="text-white/40" />
-                  </div>
-                )}
+                {(() => {
+                  const author = post.author;
+                  const profileImage = author?.profileImage ?? author?.image;
+                  return profileImage ? (
+                    <Image
+                      src={profileImage}
+                      alt={getAuthorName()}
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-white/5 ring-2 ring-white/10 flex items-center justify-center">
+                      <User size={20} className="text-white/40" />
+                    </div>
+                  );
+                })()}
               </Link>
               <div>
                 <Link
@@ -137,7 +141,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
           <div className="h-1 w-20 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full mb-6"></div>
 
-          {postWithInteractions.tags && postWithInteractions.tags.length > 0 && (
+          {postWithInteractions.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {postWithInteractions.tags.map(tag => (
                 <span key={tag.id} className="text-xs font-medium px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">

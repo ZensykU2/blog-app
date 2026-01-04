@@ -37,7 +37,7 @@ function groupConsecutiveComments(comments: Comment[]): GroupedComments[] {
     let currentGroup: GroupedComments | null = null;
 
     for (const comment of comments) {
-        if (!currentGroup || currentGroup.postId !== comment.postId) {
+        if (currentGroup?.postId !== comment.postId) {
             currentGroup = {
                 postId: comment.postId,
                 postTitle: comment.post?.title ?? "Unknown Post",

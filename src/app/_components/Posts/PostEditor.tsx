@@ -25,7 +25,7 @@ export function PostEditor() {
   const createPost = api.post.create.useMutation({
     onSuccess: (data) => {
       localStorage.removeItem("post_draft_new"); // Clear draft on success
-      if (data?.id) {
+      if (data.id) {
         router.push(`/post/${encodeId(data.id)}`);
       } else {
         router.push("/");
@@ -43,8 +43,8 @@ export function PostEditor() {
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft) as PostDraft;
-        setTitle(parsed.title ?? "");
-        setContent(parsed.content ?? "");
+        setTitle(parsed.title);
+        setContent(parsed.content);
         if (Array.isArray(parsed.tags)) setSelectedTags(parsed.tags);
         toast.success("Draft restored!");
       } catch (e) {
@@ -64,7 +64,7 @@ export function PostEditor() {
         console.error("Autosave failed", e);
       }
     }, 5000);
-    return () => clearTimeout(timeout);
+    return () => { clearTimeout(timeout); };
   }, [title, content, selectedTags, hasLoadedDraft, createPost.isPending, createPost.isSuccess]);
 
   const handleSubmit = (finalContent?: string) => {
@@ -93,7 +93,7 @@ export function PostEditor() {
       selectedTags={selectedTags}
       setSelectedTags={setSelectedTags}
       onSave={handleSubmit}
-      onBack={() => router.push("/")}
+      onBack={() => { router.push("/"); }}
       isSaving={createPost.isPending || createPost.isSuccess}
       saveButtonText={createPost.isSuccess ? "Redirecting..." : "Publish"}
       backButtonText="Back to Feed"

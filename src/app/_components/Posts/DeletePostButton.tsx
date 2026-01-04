@@ -32,7 +32,7 @@ export function DeletePostButton({ postId, className }: DeletePostButtonProps) {
   return (
     <>
       <button
-        onClick={() => setIsModalOpen(true)}
+        onClick={() => { setIsModalOpen(true); }}
         className={className ?? "flex items-center gap-2 w-full cursor-pointer hover:bg-red-500/10 p-2 rounded transition-colors"}
       >
         <Trash2 size={16} className={className ? "text-red-400" : "text-red-300"} />
@@ -43,7 +43,7 @@ export function DeletePostButton({ postId, className }: DeletePostButtonProps) {
 
       <DeleteConfirmationModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); }}
         onConfirm={handleDelete}
         isDeleting={deletePost.isPending}
       />

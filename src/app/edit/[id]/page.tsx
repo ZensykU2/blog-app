@@ -12,7 +12,7 @@ interface EditPostPageProps {
 export default async function EditPostPage({ params }: EditPostPageProps) {
   const { id } = await params;
   const session = await auth();
-  const userId = session?.user?.id;
+  const userId = session?.user.id;
 
   if (!userId) {
     redirect("/");
