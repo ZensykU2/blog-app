@@ -47,6 +47,7 @@ export function UserMenu() {
                             alt={displayName ?? "User"}
                             fill
                             className="object-cover"
+                            unoptimized
                         />
                     ) : (
                         <div className="w-full h-full bg-slate-800 flex items-center justify-center">

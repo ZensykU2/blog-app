@@ -9,7 +9,7 @@ import { X, ZoomIn, ZoomOut, Check } from "lucide-react";
 interface CropperModalProps {
     imageSrc: string;
     onClose: () => void;
-    onCropComplete: (croppedImage: string) => void;
+    onCropComplete: (croppedImage: string) => Promise<void> | void;
     aspect?: number;
     title?: string;
     cropShape?: "round" | "rect";
@@ -104,7 +104,7 @@ export function CropperModal({
                 imageSrc,
                 croppedAreaPixels
             );
-            onCropComplete(croppedImage);
+            await onCropComplete(croppedImage);
         } catch (error) {
             console.error("Error cropping image:", error);
         } finally {

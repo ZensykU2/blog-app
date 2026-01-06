@@ -14,9 +14,11 @@ import { TagSelector } from "../Shared/TagSelector";
 import { MarkdownToolbar } from "../Shared/MarkdownToolbar";
 import { FormattingGuide } from "../Shared/FormattingGuide";
 import { MarkdownRenderer } from "../Shared/MarkdownRenderer";
-import { Modal } from "../Shared/Modal";
-import { insertMarkdown } from "~/lib/markdown";
 import { CropperModal } from "../Profile/CropperModal";
+import { insertMarkdown } from "~/lib/markdown";
+import { useUploadThing } from "../uploadthing";
+import { Modal } from "../Shared/Modal";
+
 
 interface BaseEditorProps {
   title: string;
@@ -68,6 +70,16 @@ export function BaseEditor({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { startUpload } = useUploadThing("imageUploader", {
+    onClientUploadComplete: () => {
+      // Handled by handleCropComplete
+    },
+    onUploadError: (error) => {
+      console.error("Upload failed:", error);
+      toast.error(`Upload error: ${error.message}`);
+    }
+  });
+
   const VAULT_MARKER = "<!-- IMG_VAULT -->";
 
   const [localStory, setLocalStory] = useState("");
@@ -82,7 +94,7 @@ export function BaseEditor({
 
       const vault: Record<string, string> = {};
       const defRegex =
-        /\[(img[a-z0-9]+)\]:\s*(data:image\/[a-zA-Z0-9]+;base64,\S+)/g;
+        /\[(img[a-z0-9]+)\]:\s*(\S+)/g;
       let match;
       while ((match = defRegex.exec(content)) !== null) {
         if (match[1] && match[2]) {
@@ -238,22 +250,43 @@ export function BaseEditor({
     reader.readAsDataURL(file);
   };
 
-  const handleCropComplete = (croppedImage: string) => {
-    const id = `img${Date.now()}${Math.random().toString(36).substring(2, 5)}`;
-    const refTag = `![Image][${id}]`;
+  const handleCropComplete = async (croppedImage: string) => {
+    try {
+      // 1. Convert base64 to Blob/File
+      const res = await fetch(croppedImage);
+      const blob = await res.blob();
+      const file = new File([blob], "post-image.png", { type: "image/png" });
 
-    if (!textareaRef.current) return;
-    const start = textareaRef.current.selectionStart;
-    const end = textareaRef.current.selectionEnd;
-    const before = localStory.substring(0, start);
-    const after = localStory.substring(end);
+      // 2. Upload to Uploadthing
+      toast.loading("Uploading image...", { id: "upload-toast" });
+      const uploadRes = await startUpload([file]);
+      toast.dismiss("upload-toast");
 
-    const newStory = `${before}${refTag}${after}`;
+      if (uploadRes?.[0]) {
+        const imageUrl = uploadRes[0].ufsUrl;
 
-    setLocalVault((prev) => ({ ...prev, [id]: croppedImage }));
-    setLocalStory(newStory);
-    setCroppingImage(null);
-    toast.success("Image cropped and embedded!");
+        // 3. Insert into editor vault with URL
+        const id = `img${Date.now()}${Math.random().toString(36).substring(2, 5)}`;
+        const refTag = `![Image][${id}]`;
+
+        if (!textareaRef.current) return;
+        const start = textareaRef.current.selectionStart;
+        const end = textareaRef.current.selectionEnd;
+        const before = localStory.substring(0, start);
+        const after = localStory.substring(end);
+
+        const newStory = `${before}${refTag}${after}`;
+
+        setLocalVault((prev) => ({ ...prev, [id]: imageUrl }));
+        setLocalStory(newStory);
+        setCroppingImage(null);
+        toast.success("Image embedded!");
+      }
+    } catch (e) {
+      console.error("Failed to upload image:", e);
+      toast.error("Failed to upload image");
+      toast.dismiss("upload-toast");
+    }
   };
 
   const onPaste = (e: React.ClipboardEvent) => {

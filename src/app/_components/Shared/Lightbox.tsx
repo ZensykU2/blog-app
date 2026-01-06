@@ -148,10 +148,10 @@ export function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
       <div className="relative w-full h-full max-w-[95vw] max-h-[90vh] flex items-center justify-center pointer-events-none overflow-hidden">
         <div
           className={`relative w-full h-full flex items-center justify-center transition-all duration-300 ${direction === "left"
-              ? "animate-slide-left"
-              : direction === "right"
-                ? "animate-slide-right"
-                : ""
+            ? "animate-slide-left"
+            : direction === "right"
+              ? "animate-slide-right"
+              : ""
             }`}
         >
           <div onClick={(e) => { e.stopPropagation(); }}>
@@ -163,7 +163,7 @@ export function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
               className="object-contain"
               priority
               sizes="95vw"
-              unoptimized={currentImage?.startsWith("data:") ?? false}
+              unoptimized
             />
           </div>
         </div>

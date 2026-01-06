@@ -27,7 +27,7 @@ export function MarkdownRenderer({
     const vault: Record<string, string> = { ...extraDefinitions };
 
     const defRegex =
-      /\[(img[a-z0-9]+)\]:\s*(data:image\/[a-zA-Z0-9]+;base64,\S+)/g;
+      /\[(img[a-z0-9]+)\]:\s*(\S+)/g;
     let match;
     while ((match = defRegex.exec(processed)) !== null) {
       if (match[1] && match[2]) {
@@ -107,7 +107,7 @@ export function MarkdownRenderer({
                   height={800}
                   className="rounded-xl shadow-2xl border border-white/10 max-w-full h-auto mx-auto cursor-pointer hover:opacity-90 transition-opacity"
                   loading="lazy"
-                  unoptimized={finalSrc.startsWith("data:")}
+                  unoptimized
                   onClick={() => { setPreviewImage(finalSrc); }}
                 />
               </span>

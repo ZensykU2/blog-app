@@ -7,7 +7,7 @@ export function extractCoverImage(content: string): string | null {
   return images[0] ?? null;
 }
 
-export function extractImages(content: string, limit = 4): string[] {
+export function extractImages(content: string, limit?: number): string[] {
   if (!content) return [];
 
   const images: string[] = [];
@@ -17,7 +17,7 @@ export function extractImages(content: string, limit = 4): string[] {
   const imageIds: string[] = [];
 
   for (const match of refMatches) {
-    if (match[1] && imageIds.length < limit) {
+    if (match[1] && (!limit || imageIds.length < limit)) {
       imageIds.push(match[1]);
     }
   }
@@ -25,11 +25,11 @@ export function extractImages(content: string, limit = 4): string[] {
   // Find the data URLs for these IDs
   for (const id of imageIds) {
     const defRegex = new RegExp(
-      `\\[${id}\\]:\\s*(data:image\\/[a-zA-Z0-9]+;base64,\\S+)`
+      `\\[${id}\\]:\\s*(\\S+)`
     );
     const defMatch = content.match(defRegex);
 
-    if (defMatch?.[1] && images.length < limit) {
+    if (defMatch?.[1] && (!limit || images.length < limit)) {
       images.push(defMatch[1]);
     }
   }

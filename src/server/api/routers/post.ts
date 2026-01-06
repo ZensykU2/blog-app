@@ -303,12 +303,27 @@ export const postRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db
+      const deletedPost = await ctx.db
         .delete(posts)
         .where(and(
           eq(posts.id, input.id),
           eq(posts.authorId, ctx.auth.userId)
-        ));
+        ))
+        .returning({ content: posts.content });
+
+      if (deletedPost[0]?.content) {
+        const { extractImages } = await import("~/lib/post-utils");
+        const { utapi, getUploadthingKey } = await import("~/server/uploadthing");
+
+        const images = extractImages(deletedPost[0].content); // Use default limit or pass Infinity if needed, but updated extractImages handles optional limit
+        const keys = images
+          .map(url => getUploadthingKey(url))
+          .filter((key): key is string => key !== null);
+
+        if (keys.length > 0) {
+          await utapi.deleteFiles(keys);
+        }
+      }
     }),
 
   getByUser: protectedProcedure

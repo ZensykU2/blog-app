@@ -40,6 +40,27 @@ export async function POST(request: Request) {
             }
         }
 
+        // Check for image updates to delete old files
+        if (profileImage || bannerImage) {
+            const currentUser = await db.query.users.findFirst({
+                where: (u, { eq: eqOp }) => eqOp(u.id, session.user.id),
+            });
+
+            if (currentUser) {
+                const { utapi, getUploadthingKey } = await import("~/server/uploadthing");
+
+                if (profileImage && currentUser.profileImage && profileImage !== currentUser.profileImage) {
+                    const key = getUploadthingKey(currentUser.profileImage);
+                    if (key) await utapi.deleteFiles(key);
+                }
+
+                if (bannerImage && currentUser.bannerImage && bannerImage !== currentUser.bannerImage) {
+                    const key = getUploadthingKey(currentUser.bannerImage);
+                    if (key) await utapi.deleteFiles(key);
+                }
+            }
+        }
+
         await db
             .update(users)
             .set({

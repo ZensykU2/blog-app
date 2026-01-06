@@ -10,6 +10,7 @@ import TextareaAutosize from "react-textarea-autosize";
 import { api } from "~/trpc/react";
 import { toast } from "react-hot-toast";
 import { CropperModal } from "./CropperModal";
+import { useUploadThing } from "~/app/_components/uploadthing";
 
 interface ProfileHeaderProps {
   username: string;
@@ -46,6 +47,28 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
   const [croppingMode, setCroppingMode] = useState<"avatar" | "banner">(
     "avatar"
   );
+
+  const { startUpload } = useUploadThing("imageUploader", {
+    onClientUploadComplete: (res) => {
+      console.log("Upload completed successfully:", res);
+      if (res[0]) {
+        if (croppingMode === "avatar") {
+          setPendingAvatar(res[0].ufsUrl);
+        } else {
+          setPendingBanner(res[0].ufsUrl);
+        }
+        setCropperImage(null);
+        toast.success("Image uploaded!");
+      }
+    },
+    onUploadError: (error) => {
+      console.error("Upload failed with error:", error);
+      toast.error(`Upload error: ${error.message}`);
+    },
+    onUploadBegin: () => {
+      console.log("Upload started...");
+    }
+  });
 
   // Handle scroll lock during image preview
   useEffect(() => {
@@ -108,12 +131,23 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
     reader.readAsDataURL(file);
   };
 
-  const handleCropComplete = (croppedImage: string) => {
-    setCropperImage(null);
-    if (croppingMode === "avatar") {
-      setPendingAvatar(croppedImage);
-    } else {
-      setPendingBanner(croppedImage);
+  const handleCropComplete = async (croppedImage: string) => {
+    try {
+      // Convert base64 to Blob
+      const res = await fetch(croppedImage);
+      const blob = await res.blob();
+      const file = new File([blob], "image.png", { type: "image/png" });
+
+      console.log("Starting upload for file:", file.name, file.size);
+
+      // We rely on the callbacks for success/error handling primarily,
+      // but we await here to keep the modal spinner going until it's done.
+      await startUpload([file]);
+
+      console.log("startUpload promise resolved");
+    } catch (e) {
+      // Error is also handled by onUploadError
+      console.error("Error in handleCropComplete:", e);
     }
   };
 
@@ -275,6 +309,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
               fill
               className="object-cover transition-transform duration-700 group-hover/banner:scale-105"
               priority
+              unoptimized
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-purple-900/40 to-slate-900/40" />
@@ -340,6 +375,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                       width={176}
                       height={176}
                       className="object-cover w-full h-full transition-transform duration-500 group-hover/avatar:scale-110"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full bg-slate-800 flex items-center justify-center">

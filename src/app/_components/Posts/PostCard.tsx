@@ -199,6 +199,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
                     fill
                     className="object-cover"
                     sizes="32px"
+                    unoptimized
                   />
                 ) : (
                   <div className="w-full h-full bg-purple-500/20 flex items-center justify-center text-purple-200 text-xs font-bold">
@@ -289,6 +290,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       priority={priority && index === 0}
+                      unoptimized
                     />
                   </div>
                 ))}
