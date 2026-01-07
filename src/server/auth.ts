@@ -1,5 +1,5 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import NextAuth, { type DefaultSession } from "next-auth";
+import NextAuth, { type DefaultSession, type User } from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
@@ -78,9 +78,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         verificationTokensTable: verificationTokens,
     }),
 
-    // ✅ Use database sessions for production stability
+    // ✅ Use jwt sessions for Credentials support
     session: {
-        strategy: "database",
+        strategy: "jwt",
     },
 
     providers: [
@@ -118,7 +118,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     id: user.id,
                     email: user.email,
                     name: user.displayName ?? user.username,
-                    image: user.profileImage,
+                    image: user.profileImage, // return profileImage so it goes into token
                     role: user.role,
                     username: user.username,
                 };
@@ -144,7 +144,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     callbacks: {
-        async jwt({ token, user, trigger, account }) {
+        async jwt({ token, user, trigger: _trigger, account: _account }) {
             // Step 1: attach user info on login
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (user) {
@@ -154,7 +154,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
 
             // Step 2: always refresh data for Google provider or first login
-            if ((account?.provider === "google" || trigger === "update") && token.id) {
+            if (token.id) {
                 const dbUser = await db
                     .select()
                     .from(users)
@@ -163,31 +163,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     .then((rows) => rows[0]);
 
                 if (dbUser) {
+                    // Sync provider image: Always update DB if the provider sends a new image.
+                    // This fixes stale URLs and ensures the latest Google PFP is available.
+                    const currentUser = user as User | undefined;
+                    if (currentUser?.image && currentUser.image !== dbUser.image) {
+                        await db
+                            .update(users)
+                            .set({ image: currentUser.image })
+                            .where(eq(users.id, dbUser.id));
+                        dbUser.image = currentUser.image; // Update local reference
+                    }
+
                     token.username = dbUser.username;
                     token.role = dbUser.role;
                     token.name = dbUser.displayName ?? dbUser.username;
-                    token.picture = dbUser.profileImage ?? dbUser.image;
+
+                    // Logic: Use custom profileImage, fallback to Google image (dbUser.image),
+                    // fallback to current token picture (preserves provider image on first load if DB update failed)
+                    token.picture = dbUser.profileImage ?? dbUser.image ?? token.picture;
                 }
             }
 
             return token;
         },
 
-        async session({ session, user, token }) {
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (session.user) {
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                if (user) {
-                    session.user.id = user.id;
-                    session.user.role = user.role;
-                    session.user.username = user.username;
-                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                } else if (token) {
-                    session.user.id = token.id as string;
-                    session.user.role = token.role as "admin" | "author" | "user";
-                    session.user.username = token.username as string | null;
-                }
-            }
+        async session({ session, token }) {
+            session.user.id = token.id as string;
+            session.user.role = token.role as "admin" | "author" | "user";
+            session.user.username = token.username as string | null;
+            session.user.image = token.picture as string | null; // Ensure image is passed
             return session;
         },
     },

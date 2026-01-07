@@ -48,6 +48,7 @@ export function UserMenu() {
                             fill
                             className="object-cover"
                             unoptimized
+                            referrerPolicy="no-referrer"
                         />
                     ) : (
                         <div className="w-full h-full bg-slate-800 flex items-center justify-center">
