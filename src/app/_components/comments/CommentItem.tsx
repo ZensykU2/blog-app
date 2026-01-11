@@ -43,6 +43,7 @@ interface CommentItemProps {
     postAuthorId: string;
     onDelete: () => void;
     onUpdate: () => void;
+    depth?: number;
 }
 
 export function CommentItem({
@@ -51,6 +52,7 @@ export function CommentItem({
     postAuthorId,
     onDelete,
     onUpdate,
+    depth = 0,
 }: CommentItemProps) {
     const { data: session, status } = useSession();
     const [isDeleting, setIsDeleting] = useState(false);
@@ -154,17 +156,17 @@ export function CommentItem({
 
     return (
         <div
-            className={`rounded-xl mb-4 group relative transition-all duration-300 ${comment.parentId ? "bg-transparent mt-4" : "glass-panel p-5 shadow-lg"
+            className={`rounded-xl mb-4 group relative transition-all duration-300 ${comment.parentId ? "bg-transparent mt-4" : "glass-panel p-2.5 pr-2 md:p-5 shadow-lg"
                 }`}
         >
-            <div className="flex gap-4">
+            <div className="flex gap-2 md:gap-4">
                 <Link
                     href={
                         comment.author?.username
                             ? `/profile/${comment.author.username}`
                             : "#"
                     }
-                    className="flex-shrink-0 transition-transform hover:scale-110"
+                    className="flex-shrink-0 shrink-0 transition-transform hover:scale-110"
                 >
                     {(() => {
                         const author = comment.author;
@@ -175,11 +177,11 @@ export function CommentItem({
                                 alt={getAuthorName()}
                                 width={40}
                                 height={40}
-                                className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
+                                className="w-8 h-8 md:w-10 md:h-10 rounded-full ring-2 ring-white/10 object-cover"
                                 unoptimized
                             />
                         ) : (
-                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-white/10">
+                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-white/10">
                                 <UserIcon size={20} className="text-slate-400" />
                             </div>
                         );
@@ -304,7 +306,16 @@ export function CommentItem({
                             )}
 
                             {replies.length > 0 && (
-                                <div className="mt-6 space-y-4 border-l-2 border-white/5 ml-2 pl-6">
+                                <div
+                                    className={`mt-6 space-y-4 border-white/5
+                                        ${depth < 1
+                                            ? "border-l md:border-l-2 pl-1.5 md:pl-6 ml-1 md:ml-2"
+                                            : depth < 5
+                                                ? "border-l md:border-l-2 pl-3 md:pl-6 ml-0 md:ml-2"
+                                                : "border-l-0 md:border-l-2 pl-0 md:pl-6 ml-0 md:ml-2"
+                                        }
+                                    `}
+                                >
                                     {displayedReplies.map((reply) => (
                                         <CommentItem
                                             key={reply.id}
@@ -313,6 +324,7 @@ export function CommentItem({
                                             postAuthorId={postAuthorId}
                                             onDelete={onDelete}
                                             onUpdate={onUpdate}
+                                            depth={depth + 1}
                                         />
                                     ))}
 

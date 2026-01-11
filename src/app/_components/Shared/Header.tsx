@@ -30,7 +30,7 @@ export function Header() {
                                 <>
                                     {session.user.role === "admin" && (
                                         <Link href="/admin">
-                                            <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:shadow-amber-500/40 hover:scale-105 active:scale-95 cursor-pointer">
+                                            <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-1.5 md:px-6 md:py-2 text-xs md:text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:shadow-amber-500/40 hover:scale-105 active:scale-95 cursor-pointer">
                                                 <span className="relative z-10">Admin</span>
                                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:animate-[shimmer_1s_infinite]" />
                                             </button>
@@ -38,7 +38,7 @@ export function Header() {
                                     )}
 
                                     <Link href="/create">
-                                        <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 active:scale-95 cursor-pointer">
+                                        <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-1.5 md:px-6 md:py-2 text-xs md:text-sm font-bold text-white shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 active:scale-95 cursor-pointer">
                                             <span className="relative z-10">New Post</span>
                                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:animate-[shimmer_1s_infinite]" />
                                         </button>

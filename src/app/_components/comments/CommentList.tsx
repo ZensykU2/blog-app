@@ -79,6 +79,7 @@ export function CommentList({ postId, postAuthorId }: CommentListProps) {
                                         postAuthorId={postAuthorId}
                                         onDelete={refetch}
                                         onUpdate={refetch}
+                                        depth={0}
                                     />
                                 ))}
 

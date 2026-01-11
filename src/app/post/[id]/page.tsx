@@ -67,11 +67,11 @@ export default async function PostPage({ params }: PostPageProps) {
         <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
         <header className="mb-10 relative z-10">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4 md:gap-0">
             <div className="flex items-center gap-3">
               <Link
                 href={post.author?.username ? `/profile/${post.author.username}` : "#"}
-                className="transition-transform hover:scale-110"
+                className="transition-transform hover:scale-110 shrink-0"
               >
                 {(() => {
                   const author = post.author;
