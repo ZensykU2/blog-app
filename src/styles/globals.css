@@ -127,3 +127,22 @@ body {
     scrollbar-color: rgba(255, 255, 255, 0.1) #0f172a;
   }
 }
+
+/* Extra-Narrow Screen Optimizations (e.g. Galaxy Z Fold 5) */
+@media (max-width: 360px) {
+  :root {
+    font-size: 14px;
+  }
+
+  .container {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  /* Post Header Scaling */
+  h1.text-4xl.md\:text-5xl {
+    font-size: 1.875rem !important;
+    /* text-3xl */
+    line-height: 2.25rem !important;
+  }
+}

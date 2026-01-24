@@ -75,7 +75,7 @@ export function CommentList({ postId, postAuthorId }: CommentListProps) {
                                 {/* Thread View */}
                                 {activeThread && (
                                     <div className="space-y-6 animate-fade-in mb-12">
-                                        <div className="flex items-center justify-between mb-4 sticky top-[73px] z-40 py-3 px-1 -mx-1 border-b border-white/5">
+                                        <div className="flex items-center justify-between mb-4 sticky top-[73px] z-500 py-3 px-1 -mx-1 border-b border-white/5">
                                             <button
                                                 onClick={() => {
                                                     const commentId = activeThread.id;
