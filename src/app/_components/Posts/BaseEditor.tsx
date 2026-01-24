@@ -135,6 +135,7 @@ export function BaseEditor({
           // If removed from text, also remove from pending uploads to avoid uploading unused images
           // If removed from text, also remove from pending uploads to avoid uploading unused images
           if (pendingUploads.current[id]) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { [id]: _removed, ...rest } = pendingUploads.current;
             pendingUploads.current = rest;
           }
@@ -223,11 +224,13 @@ export function BaseEditor({
     toast.loading(`Uploading ${pendingIds.length} images...`, { id: "upload-toast" });
 
     try {
-      const filesToUpload = pendingIds.map(id => pendingUploads.current[id]!);
+      const filesToUpload = pendingIds
+        .map(id => pendingUploads.current[id])
+        .filter((f): f is File => !!f);
       // Upload all at once
       const uploadRes = await startUpload(filesToUpload);
 
-      if (!uploadRes || uploadRes.length !== filesToUpload.length) {
+      if (uploadRes?.length !== filesToUpload.length) {
         throw new Error("Upload mismatch or failure");
       }
 
@@ -237,6 +240,7 @@ export function BaseEditor({
         const uploadedUrl = uploadRes[index]?.ufsUrl;
         if (uploadedUrl) {
           newVault[id] = uploadedUrl;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { [id]: _removed, ...rest } = pendingUploads.current;
           pendingUploads.current = rest;
         }
@@ -263,7 +267,7 @@ export function BaseEditor({
 
   const handleSaveAndLeave = async () => {
     try {
-      const finalContent = await processPendingUploads(localStory, localVault);
+      await processPendingUploads(localStory, localVault);
       toast.success("Draft saved!");
       onBack();
     } catch {
