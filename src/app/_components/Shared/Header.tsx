@@ -10,7 +10,7 @@ export function Header() {
     const isLoading = status === "loading";
 
     return (
-        <header className="sticky top-0 z-50 border-b border-white/5 bg-[#0f172a]/80 backdrop-blur-xl supports-[backdrop-filter]:bg-[#0f172a]/60 min-h-[73px]">
+        <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0f172a]/80 backdrop-blur-xl supports-[backdrop-filter]:bg-[#0f172a]/60 min-h-[73px] w-full">
             <div className="container mx-auto flex items-center justify-between px-4 py-4">
                 {/* Logo */}
                 <Link

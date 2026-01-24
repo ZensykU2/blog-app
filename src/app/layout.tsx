@@ -34,7 +34,9 @@ export default function RootLayout({
               }
             }} />
             <Header />
-            {children}
+            <main className="pt-[73px]">
+              {children}
+            </main>
           </TRPCReactProvider>
         </AuthProvider>
       </body>
