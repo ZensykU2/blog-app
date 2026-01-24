@@ -18,6 +18,7 @@ import { CropperModal } from "../Profile/CropperModal";
 import { insertMarkdown } from "~/lib/markdown";
 import { useUploadThing } from "../uploadthing";
 import { Modal } from "../Shared/Modal";
+import TextareaAutosize from "react-textarea-autosize";
 
 
 interface BaseEditorProps {
@@ -481,8 +482,7 @@ export function BaseEditor({
         <div className="w-full xl:mx-0 min-w-0">
           <div className="space-y-8">
             <div className="relative group">
-              <input
-                type="text"
+              <TextareaAutosize
                 placeholder="Title"
                 value={title}
                 onChange={(e) => { setTitle(e.target.value); }}
