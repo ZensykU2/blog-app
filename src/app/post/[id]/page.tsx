@@ -93,23 +93,31 @@ export default async function PostPage({ params }: PostPageProps) {
                 })()}
               </Link>
               <div>
-                <Link
-                  href={post.author?.username ? `/profile/${post.author.username}` : "#"}
-                  className="text-sm font-semibold text-white hover:text-purple-400 transition-colors"
-                >
-                  {getAuthorName()}
-                </Link>
-                <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={post.author?.username ? `/profile/${post.author.username}` : "#"}
+                    className="text-sm font-semibold text-white hover:text-purple-400 transition-colors"
+                  >
+                    {getAuthorName()}
+                  </Link>
+                  <div className="flex items-center gap-1.5 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/10 md:hidden">
+                    <Clock size={10} className="text-purple-400" />
+                    <span className="text-[10px] font-medium text-purple-300">
+                      {Math.ceil((post.wordCount ?? 0) / 200)} min
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] md:text-xs text-slate-400 mt-1">
                   <div className="flex items-center gap-2">
-                    <span>{post.createdAt.toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
+                    <span>{post.createdAt.toLocaleDateString(undefined, { dateStyle: 'short' })}</span>
                     {post.updatedAt && post.updatedAt > post.createdAt && (
                       <>
-                        <span>•</span>
-                        <span>Updated {post.updatedAt.toLocaleDateString()}</span>
+                        <span className="text-slate-600">•</span>
+                        <span className="italic">Updated {post.updatedAt.toLocaleDateString(undefined, { dateStyle: 'short' })}</span>
                       </>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                  <div className="hidden md:flex items-center gap-2 bg-white/5 px-2 py-0.5 rounded border border-white/5">
                     <span className="flex items-center gap-1">
                       <Clock size={12} className="text-purple-400" />
                       {Math.ceil((post.wordCount ?? 0) / 200)} min read
@@ -120,17 +128,17 @@ export default async function PostPage({ params }: PostPageProps) {
             </div>
 
             {isOwner && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 self-end md:self-center">
                 <Link href={`/edit/${encodeId(post.id)}`}>
-                  <button className="flex items-center gap-2 rounded-full bg-white/5 hover:bg-white/10 px-4 py-2 text-sm font-medium transition-all hover:scale-105 cursor-pointer border border-white/5 text-purple-300">
+                  <button className="flex items-center gap-2 rounded-full bg-white/5 hover:bg-white/10 px-3 py-2 md:px-4 md:py-2 text-sm font-medium transition-all hover:scale-105 cursor-pointer border border-white/5 text-purple-300" title="Edit Post">
                     <Edit2 size={16} />
-                    Edit
+                    <span className="hidden md:inline">Edit</span>
                   </button>
                 </Link>
 
                 <DeletePostButton
                   postId={post.id}
-                  className="flex items-center gap-2 rounded-full bg-red-500/10 hover:bg-red-500/20 px-4 py-2 text-sm font-medium transition-all hover:scale-105 cursor-pointer border border-red-500/20 text-red-400"
+                  className="flex items-center justify-center rounded-full bg-red-500/10 hover:bg-red-500/20 w-9 h-9 md:w-auto md:h-auto md:px-4 md:py-2 text-sm font-medium transition-all hover:scale-105 cursor-pointer border border-red-500/20 text-red-400"
                 />
               </div>
             )}
