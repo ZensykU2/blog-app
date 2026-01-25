@@ -180,7 +180,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                     // Logic: Use custom profileImage, fallback to Google image (dbUser.image),
                     // fallback to current token picture (preserves provider image on first load if DB update failed)
-                    token.picture = dbUser.profileImage ?? dbUser.image ?? token.picture;
+                    const rawPicture = dbUser.profileImage ?? dbUser.image ?? (token.picture as string | null);
+
+                    // Prune large pictures (e.g., base64 strings) to prevent header overflow
+                    if (rawPicture && (rawPicture.startsWith("data:") || rawPicture.length > 5000)) {
+                        token.picture = null;
+                    } else {
+                        token.picture = rawPicture;
+                    }
                 }
             }
 
