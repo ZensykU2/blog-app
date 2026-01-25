@@ -26,6 +26,21 @@ export async function POST(request: Request) {
         const body = (await request.json()) as ProfileUpdateBody;
         const { displayName, username, bio, profileImage, bannerImage } = body;
 
+        // Prevent large base64 strings or massive URLs from being saved
+        const validateImage = (img?: string) => {
+            if (!img) return true;
+            if (img.startsWith("data:")) return false; // Block base64
+            if (img.length > 3000) return false; // Block massive URLs
+            return true;
+        };
+
+        if (!validateImage(profileImage) || !validateImage(bannerImage)) {
+            return NextResponse.json(
+                { error: "Invalid image format or size. Please use a direct URL." },
+                { status: 400 }
+            );
+        }
+
         // If username is being updated, check for uniqueness
         if (username) {
             const existingUser = await db.query.users.findFirst({
