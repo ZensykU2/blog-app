@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { postLikes, postBookmarks, commentLikes } from "~/server/db/schema";
+import { postLikes, postBookmarks, commentLikes, posts, comments } from "~/server/db/schema";
+import { createNotification } from "~/server/services/notification.service";
 
 export const interactionRouter = createTRPCRouter({
     togglePostLike: protectedProcedure
@@ -38,6 +39,24 @@ export const interactionRouter = createTRPCRouter({
                         postId: input.postId,
                         userId: userId,
                     });
+
+                // Trigger notification
+                const post = await ctx.db.query.posts.findFirst({
+                    where: eq(posts.id, input.postId),
+                    columns: { authorId: true, title: true }
+                });
+
+                if (post && post.authorId !== userId) {
+                    await createNotification(ctx.db, {
+                        userId: post.authorId,
+                        type: "post_like",
+                        title: "New Like",
+                        message: `liked your post: ${post.title ?? 'Untitled'}`,
+                        relatedUserId: userId,
+                        relatedPostId: input.postId,
+                    });
+                }
+
                 return { liked: true };
             }
         }),
@@ -76,6 +95,24 @@ export const interactionRouter = createTRPCRouter({
                         postId: input.postId,
                         userId: userId,
                     });
+
+                // Trigger notification
+                const post = await ctx.db.query.posts.findFirst({
+                    where: eq(posts.id, input.postId),
+                    columns: { authorId: true, title: true }
+                });
+
+                if (post && post.authorId !== userId) {
+                    await createNotification(ctx.db, {
+                        userId: post.authorId,
+                        type: "post_bookmark",
+                        title: "New Bookmark",
+                        message: `Someone bookmarked your post: ${post.title}`,
+                        // Note: relatedUserId is null for bookmarks as per user request to hide who bookmarked
+                        relatedPostId: input.postId,
+                    });
+                }
+
                 return { bookmarked: true };
             }
         }),
@@ -114,6 +151,25 @@ export const interactionRouter = createTRPCRouter({
                         commentId: input.commentId,
                         userId: userId,
                     });
+
+                // Trigger notification
+                const comment = await ctx.db.query.comments.findFirst({
+                    where: eq(comments.id, input.commentId),
+                    columns: { authorId: true, content: true, postId: true }
+                });
+
+                if (comment && comment.authorId !== userId) {
+                    await createNotification(ctx.db, {
+                        userId: comment.authorId,
+                        type: "comment_like",
+                        title: "New Comment Like",
+                        message: `liked your comment: ${comment.content.substring(0, 50)}...`,
+                        relatedUserId: userId,
+                        relatedCommentId: input.commentId,
+                        relatedPostId: comment.postId,
+                    });
+                }
+
                 return { liked: true };
             }
         }),

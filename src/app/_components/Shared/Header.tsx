@@ -2,15 +2,16 @@
 
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
-import { UserMenu } from "./UserMenu";
 import { Button } from "./Button";
+import { UserMenu } from "./UserMenu";
+import { NotificationBell } from "../Notifications/NotificationBell";
 
 export function Header() {
     const { data: session, status } = useSession();
     const isLoading = status === "loading";
 
     return (
-        <header className="sticky top-0 z-50 border-b border-white/5 bg-[#0f172a]/80 backdrop-blur-xl supports-[backdrop-filter]:bg-[#0f172a]/60 min-h-[73px]">
+        <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0f172a]/80 backdrop-blur-xl supports-[backdrop-filter]:bg-[#0f172a]/60 min-h-[73px] w-full">
             <div className="container mx-auto flex items-center justify-between px-4 py-4">
                 {/* Logo */}
                 <Link
@@ -30,7 +31,7 @@ export function Header() {
                                 <>
                                     {session.user.role === "admin" && (
                                         <Link href="/admin">
-                                            <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:shadow-amber-500/40 hover:scale-105 active:scale-95 cursor-pointer">
+                                            <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-1.5 md:px-6 md:py-2 text-xs md:text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:shadow-amber-500/40 hover:scale-105 active:scale-95 cursor-pointer">
                                                 <span className="relative z-10">Admin</span>
                                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:animate-[shimmer_1s_infinite]" />
                                             </button>
@@ -38,12 +39,13 @@ export function Header() {
                                     )}
 
                                     <Link href="/create">
-                                        <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 active:scale-95 cursor-pointer">
+                                        <button className="relative overflow-hidden rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-1.5 md:px-6 md:py-2 text-xs md:text-sm font-bold text-white shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 active:scale-95 cursor-pointer">
                                             <span className="relative z-10">New Post</span>
                                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:animate-[shimmer_1s_infinite]" />
                                         </button>
                                     </Link>
 
+                                    <NotificationBell />
                                     <UserMenu />
                                 </>
                             ) : (

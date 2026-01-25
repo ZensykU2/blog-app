@@ -11,6 +11,8 @@ import { api } from "~/trpc/react";
 import { toast } from "react-hot-toast";
 import { CropperModal } from "./CropperModal";
 import { useUploadThing } from "~/app/_components/uploadthing";
+import { FollowButton } from "./FollowButton";
+import { FollowListModal } from "./FollowListModal";
 
 interface ProfileHeaderProps {
   username: string;
@@ -46,6 +48,14 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
   const [cropperImage, setCropperImage] = useState<string | null>(null);
   const [croppingMode, setCroppingMode] = useState<"avatar" | "banner">(
     "avatar"
+  );
+
+  const [showFollowList, setShowFollowList] = useState(false);
+  const [followListType, setFollowListType] = useState<"followers" | "following">("followers");
+
+  const { data: followCounts } = api.user.getFollowCounts.useQuery(
+    { userId: dbUser?.id ?? "" },
+    { enabled: !!dbUser }
   );
 
   const { startUpload } = useUploadThing("imageUploader", {
@@ -393,7 +403,7 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
             </div>
 
             {/* Profile Info */}
-            <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 w-full">
+            <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 w-full pt-4 md:pt-0">
               <div className="text-center md:text-left">
                 {isEditingProfile ? (
                   <div className="space-y-3">
@@ -439,6 +449,53 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                     <p className="text-purple-400 font-bold tracking-[0.2em] text-xs md:text-sm uppercase mt-1">
                       @{dbUser.username}
                     </p>
+                  </div>
+                )}
+
+                {/* Desktop Follow Stats & Button */}
+                {!isEditingProfile && (
+                  <div className="hidden md:flex items-center gap-6 mt-4">
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={() => {
+                          setFollowListType("followers");
+                          setShowFollowList(true);
+                        }}
+                        className="group/stat flex items-center gap-2 cursor-pointer"
+                      >
+                        <span className="font-black text-white text-xl group-hover/stat:text-purple-400 transition-colors">
+                          {followCounts?.followers ?? 0}
+                        </span>
+                        <span className="text-sm text-slate-500 font-bold uppercase tracking-wider group-hover/stat:text-slate-300 transition-colors">
+                          Followers
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setFollowListType("following");
+                          setShowFollowList(true);
+                        }}
+                        className="group/stat flex items-center gap-2 cursor-pointer"
+                      >
+                        <span className="font-black text-white text-xl group-hover/stat:text-purple-400 transition-colors">
+                          {followCounts?.following ?? 0}
+                        </span>
+                        <span className="text-sm text-slate-500 font-bold uppercase tracking-wider group-hover/stat:text-slate-300 transition-colors">
+                          Following
+                        </span>
+                      </button>
+                    </div>
+
+                    {!isOwner && (
+                      <FollowButton targetUserId={dbUser.id} targetUsername={dbUser.username ?? ""} />
+                    )}
+                  </div>
+                )}
+
+                {/* Mobile Follow Button */}
+                {!isEditingProfile && !isOwner && (
+                  <div className="md:hidden mt-4 flex justify-center w-full">
+                    <FollowButton targetUserId={dbUser.id} targetUsername={dbUser.username ?? ""} />
                   </div>
                 )}
               </div>
@@ -488,6 +545,31 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
                 </div>
               )}
             </div>
+
+            {/* Follow Stats Mobile */}
+            <div className="flex md:hidden items-center justify-center gap-6 border-t border-b border-white/5 py-3 w-full">
+              <button
+                onClick={() => {
+                  setFollowListType("followers");
+                  setShowFollowList(true);
+                }}
+                className="flex flex-col items-center"
+              >
+                <span className="font-bold text-white text-lg">{followCounts?.followers ?? 0}</span>
+                <span className="text-xs text-slate-500 uppercase tracking-widest">Followers</span>
+              </button>
+              <div className="w-px h-8 bg-white/10" />
+              <button
+                onClick={() => {
+                  setFollowListType("following");
+                  setShowFollowList(true);
+                }}
+                className="flex flex-col items-center"
+              >
+                <span className="font-bold text-white text-lg">{followCounts?.following ?? 0}</span>
+                <span className="text-xs text-slate-500 uppercase tracking-widest">Following</span>
+              </button>
+            </div>
           </div>
 
           {/* Bio Section */}
@@ -527,6 +609,14 @@ export function ProfileHeader({ username }: ProfileHeaderProps) {
         images={previewImage ? [previewImage] : []}
         initialIndex={0}
         onClose={() => { setPreviewImage(null); }}
+      />
+
+      <FollowListModal
+        isOpen={showFollowList}
+        onClose={() => { setShowFollowList(false); }}
+        type={followListType}
+        userId={dbUser.id}
+        username={dbUser.username ?? ""}
       />
     </>
   );

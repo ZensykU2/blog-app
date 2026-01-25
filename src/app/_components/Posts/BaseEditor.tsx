@@ -18,6 +18,7 @@ import { CropperModal } from "../Profile/CropperModal";
 import { insertMarkdown } from "~/lib/markdown";
 import { useUploadThing } from "../uploadthing";
 import { Modal } from "../Shared/Modal";
+import TextareaAutosize from "react-textarea-autosize";
 
 
 interface BaseEditorProps {
@@ -86,6 +87,9 @@ export function BaseEditor({
   const [localVault, setLocalVault] = useState<Record<string, string>>({});
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Store pending files: ID -> File
+  const pendingUploads = useRef<Record<string, File>>({});
+
   // Initialize from content only once
   useEffect(() => {
     if (!isInitialized && content) {
@@ -124,8 +128,18 @@ export function BaseEditor({
 
       Object.entries(localVault).forEach(([id, data]) => {
         if (usedRefs.includes(id)) {
+          // Check if it's a blob url - we still sync it to content for preview, 
+          // but the final save will replace it.
           definitions.push(`[${id}]: ${data}`);
           newVault[id] = data;
+        } else {
+          // If removed from text, also remove from pending uploads to avoid uploading unused images
+          // If removed from text, also remove from pending uploads to avoid uploading unused images
+          if (pendingUploads.current[id]) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { [id]: _removed, ...rest } = pendingUploads.current;
+            pendingUploads.current = rest;
+          }
         }
       });
 
@@ -192,9 +206,74 @@ export function BaseEditor({
     }
   };
 
-  const handleSaveAndLeave = () => {
-    toast.success("Draft saved!");
-    onBack();
+  const processPendingUploads = async (currentStory: string, currentVault: Record<string, string>): Promise<string> => {
+    const pendingIds = Object.keys(pendingUploads.current).filter(id => {
+      // Only upload if still in the story
+      return currentStory.includes(`[${id}]`);
+    });
+
+    if (pendingIds.length === 0) {
+      const definitions: string[] = [];
+      const usedRefs = (currentStory.match(/\[img[a-z0-9]+\]/g) ?? []).map((r) => r.replace(/[\[\]]/g, ""));
+      Object.entries(currentVault).forEach(([id, data]) => {
+        if (usedRefs.includes(id)) definitions.push(`[${id}]: ${data}`);
+      });
+      const storyPart = currentStory.trim();
+      return definitions.length > 0 ? `${storyPart}\n\n${VAULT_MARKER}\n\n${definitions.join("\n\n")}` : storyPart;
+    }
+
+    toast.loading(`Uploading ${pendingIds.length} images...`, { id: "upload-toast" });
+
+    try {
+      const filesToUpload = pendingIds
+        .map(id => pendingUploads.current[id])
+        .filter((f): f is File => !!f);
+      // Upload all at once
+      const uploadRes = await startUpload(filesToUpload);
+
+      if (uploadRes?.length !== filesToUpload.length) {
+        throw new Error("Upload mismatch or failure");
+      }
+
+      const newVault = { ...currentVault };
+
+      pendingIds.forEach((id, index) => {
+        const uploadedUrl = uploadRes[index]?.ufsUrl;
+        if (uploadedUrl) {
+          newVault[id] = uploadedUrl;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { [id]: _removed, ...rest } = pendingUploads.current;
+          pendingUploads.current = rest;
+        }
+      });
+
+      setLocalVault(newVault); // Update local state with real URLs
+      toast.success("Images uploaded successfully", { id: "upload-toast" });
+
+      // Reconstruct content with new URLs
+      const definitions: string[] = [];
+      const usedRefs = (currentStory.match(/\[img[a-z0-9]+\]/g) ?? []).map((r) => r.replace(/[\[\]]/g, ""));
+      Object.entries(newVault).forEach(([id, data]) => {
+        if (usedRefs.includes(id)) definitions.push(`[${id}]: ${data}`);
+      });
+      const storyPart = currentStory.trim();
+      return definitions.length > 0 ? `${storyPart}\n\n${VAULT_MARKER}\n\n${definitions.join("\n\n")}` : storyPart;
+
+    } catch (e) {
+      console.error("Batch upload failed", e);
+      toast.error("Failed to upload images", { id: "upload-toast" });
+      throw e;
+    }
+  };
+
+  const handleSaveAndLeave = async () => {
+    try {
+      await processPendingUploads(localStory, localVault);
+      toast.success("Draft saved!");
+      onBack();
+    } catch {
+      // Error handled in processPendingUploads (toast shown)
+    }
   };
 
   const handleDiscardAndLeave = () => {
@@ -257,35 +336,31 @@ export function BaseEditor({
       const blob = await res.blob();
       const file = new File([blob], "post-image.png", { type: "image/png" });
 
-      // 2. Upload to Uploadthing
-      toast.loading("Uploading image...", { id: "upload-toast" });
-      const uploadRes = await startUpload([file]);
-      toast.dismiss("upload-toast");
+      // 2. Local Preview (Defer Upload)
+      const localUrl = URL.createObjectURL(file);
 
-      if (uploadRes?.[0]) {
-        const imageUrl = uploadRes[0].ufsUrl;
+      // 3. Insert into editor vault with ID
+      const id = `img${Date.now()}${Math.random().toString(36).substring(2, 5)}`;
+      const refTag = `![Image][${id}]`;
 
-        // 3. Insert into editor vault with URL
-        const id = `img${Date.now()}${Math.random().toString(36).substring(2, 5)}`;
-        const refTag = `![Image][${id}]`;
+      if (!textareaRef.current) return;
+      const start = textareaRef.current.selectionStart;
+      const end = textareaRef.current.selectionEnd;
+      const before = localStory.substring(0, start);
+      const after = localStory.substring(end);
 
-        if (!textareaRef.current) return;
-        const start = textareaRef.current.selectionStart;
-        const end = textareaRef.current.selectionEnd;
-        const before = localStory.substring(0, start);
-        const after = localStory.substring(end);
+      const newStory = `${before}${refTag}${after}`;
 
-        const newStory = `${before}${refTag}${after}`;
+      // Store file for later upload
+      pendingUploads.current[id] = file;
 
-        setLocalVault((prev) => ({ ...prev, [id]: imageUrl }));
-        setLocalStory(newStory);
-        setCroppingImage(null);
-        toast.success("Image embedded!");
-      }
+      setLocalVault((prev) => ({ ...prev, [id]: localUrl }));
+      setLocalStory(newStory);
+      setCroppingImage(null);
+
     } catch (e) {
-      console.error("Failed to upload image:", e);
-      toast.error("Failed to upload image");
-      toast.dismiss("upload-toast");
+      console.error("Failed to process image:", e);
+      toast.error("Failed to process image");
     }
   };
 
@@ -320,14 +395,14 @@ export function BaseEditor({
           <div className="flex items-center gap-2 md:gap-3">
             {secondaryButtonText && (
               <button
-                onClick={() => {
-                  const storyPart = localStory.trim();
-                  const definitions: string[] = [];
-                  const usedRefs = (localStory.match(/\[img[a-z0-9]+\]/g) ?? []).map((r) => r.replace(/[\[\]]/g, ""));
-                  Object.entries(localVault).forEach(([id, data]) => { if (usedRefs.includes(id)) definitions.push(`[${id}]: ${data}`); });
-                  const finalContent = definitions.length > 0 ? `${storyPart}\n\n${VAULT_MARKER}\n\n${definitions.join("\n\n")}` : storyPart;
-                  setContent(finalContent);
-                  onSecondaryAction?.(finalContent);
+                onClick={async () => {
+                  try {
+                    const finalContent = await processPendingUploads(localStory, localVault);
+                    setContent(finalContent);
+                    onSecondaryAction?.(finalContent);
+                  } catch {
+                    // Toast already shown in processPendingUploads
+                  }
                 }}
                 disabled={isSaving || isSecondaryLoading}
                 className="flex items-center justify-center px-4 md:px-6 py-2 md:py-2.5 rounded-full font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs md:text-sm disabled:opacity-50 cursor-pointer"
@@ -343,24 +418,15 @@ export function BaseEditor({
               </button>
             )}
             <button
-              onClick={() => {
-                const usedRefs = (localStory.match(/\[img[a-z0-9]+\]/g) ?? []).map(
-                  (r) => r.replace(/[\[\]]/g, "")
-                );
-                const definitions: string[] = [];
-                Object.entries(localVault).forEach(([id, data]) => {
-                  if (usedRefs.includes(id)) definitions.push(`[${id}]: ${data}`);
-                });
-                const storyPart = localStory.trim();
-                const finalContent =
-                  definitions.length > 0
-                    ? `${storyPart}\n\n${VAULT_MARKER}\n\n${definitions.join(
-                      "\n\n"
-                    )}`
-                    : storyPart;
-
-                setContent(finalContent);
-                onSave(finalContent);
+              onClick={async () => {
+                try {
+                  const finalContent = await processPendingUploads(localStory, localVault);
+                  setContent(finalContent);
+                  setContent(finalContent);
+                  onSave(finalContent);
+                } catch {
+                  // Toast already shown
+                }
               }}
               disabled={isSaving || (isSecondaryLoading ?? false) || !title.trim() || !localStory.trim()}
               className="flex items-center gap-2 bg-white text-black px-4 md:px-8 py-2 md:py-2.5 rounded-full font-bold hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 cursor-pointer shadow-xl shadow-white/5 text-xs md:text-base"
@@ -416,8 +482,7 @@ export function BaseEditor({
         <div className="w-full xl:mx-0 min-w-0">
           <div className="space-y-8">
             <div className="relative group">
-              <input
-                type="text"
+              <TextareaAutosize
                 placeholder="Title"
                 value={title}
                 onChange={(e) => { setTitle(e.target.value); }}

@@ -36,7 +36,7 @@ export function DeletePostButton({ postId, className }: DeletePostButtonProps) {
         className={className ?? "flex items-center gap-2 w-full cursor-pointer hover:bg-red-500/10 p-2 rounded transition-colors"}
       >
         <Trash2 size={16} className={className ? "text-red-400" : "text-red-300"} />
-        <span className={className ? "text-red-400" : "text-red-300"}>
+        <span className={`${className ? "text-red-400" : "text-red-300"} hidden md:inline`}>
           Delete
         </span>
       </button>

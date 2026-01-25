@@ -9,7 +9,7 @@ import {
     ChevronUp,
     Heart,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { api } from "~/trpc/react";
@@ -43,6 +43,9 @@ interface CommentItemProps {
     postAuthorId: string;
     onDelete: () => void;
     onUpdate: () => void;
+    depth?: number;
+    onReadThread?: (comment: CommentWithReplies) => void;
+    isThreadView?: boolean;
 }
 
 export function CommentItem({
@@ -51,6 +54,9 @@ export function CommentItem({
     postAuthorId,
     onDelete,
     onUpdate,
+    depth = 0,
+    onReadThread,
+    isThreadView = false,
 }: CommentItemProps) {
     const { data: session, status } = useSession();
     const [isDeleting, setIsDeleting] = useState(false);
@@ -61,7 +67,19 @@ export function CommentItem({
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [likes, setLikes] = useState(comment.likeCount ?? 0);
     const [isLiked, setIsLiked] = useState(comment.isLiked ?? false);
+    const [isMobile, setIsMobile] = useState(false);
     const utils = api.useUtils();
+
+    useEffect(() => {
+        const checkMobile = () => { setIsMobile(window.innerWidth < 768); };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => {
+            window.removeEventListener("resize", checkMobile);
+        };
+    }, []);
+
+    const isExtraNarrow = isMobile && typeof window !== 'undefined' && window.innerWidth < 360;
 
     const toggleLike = api.interaction.toggleCommentLike.useMutation({
         onMutate: () => {
@@ -154,17 +172,18 @@ export function CommentItem({
 
     return (
         <div
-            className={`rounded-xl mb-4 group relative transition-all duration-300 ${comment.parentId ? "bg-transparent mt-4" : "glass-panel p-5 shadow-lg"
-                }`}
+            id={`comment-${comment.id}`}
+            className={`rounded-xl mb-4 group relative transition-all duration-300 ${isThreadView || comment.parentId ? "bg-transparent mt-4" : "glass-panel p-2.5 pr-2 md:p-5 shadow-lg"
+                } ${isThreadView && !comment.parentId ? "glass-panel p-2.5 pr-2 md:p-5 shadow-lg !bg-white/5" : ""} ${isExtraNarrow ? "!p-2 !mb-2" : ""}`}
         >
-            <div className="flex gap-4">
+            <div className={`flex ${isExtraNarrow ? "gap-2" : "gap-4 md:gap-4"}`}>
                 <Link
                     href={
                         comment.author?.username
                             ? `/profile/${comment.author.username}`
                             : "#"
                     }
-                    className="flex-shrink-0 transition-transform hover:scale-110"
+                    className="flex-shrink-0 shrink-0 transition-transform hover:scale-110"
                 >
                     {(() => {
                         const author = comment.author;
@@ -175,12 +194,12 @@ export function CommentItem({
                                 alt={getAuthorName()}
                                 width={40}
                                 height={40}
-                                className="w-10 h-10 rounded-full ring-2 ring-white/10 object-cover"
+                                className={`${comment.parentId ? (isExtraNarrow ? "w-5 h-5" : "w-6 h-6") : (isExtraNarrow ? "w-8 h-8" : "w-10 h-10")} md:w-10 md:h-10 rounded-full ring-2 ring-white/10 object-cover`}
                                 unoptimized
                             />
                         ) : (
-                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-white/10">
-                                <UserIcon size={20} className="text-slate-400" />
+                            <div className={`${comment.parentId ? (isExtraNarrow ? "w-5 h-5" : "w-6 h-6") : (isExtraNarrow ? "w-8 h-8" : "w-10 h-10")} md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-white/10`}>
+                                <UserIcon size={comment.parentId ? (isExtraNarrow ? 10 : 14) : (isExtraNarrow ? 16 : 20)} className="text-slate-400" />
                             </div>
                         );
                     })()}
@@ -243,7 +262,7 @@ export function CommentItem({
                     ) : (
                         <div className="space-y-3 text-left">
                             <div className="flex flex-col items-start">
-                                <p className="text-slate-300 text-sm leading-relaxed break-words whitespace-pre-wrap text-left">
+                                <p className={`${isExtraNarrow ? "text-[13px]" : "text-sm"} text-slate-300 leading-relaxed break-words whitespace-pre-wrap text-left`}>
                                     {displayContent}
                                 </p>
 
@@ -304,38 +323,68 @@ export function CommentItem({
                             )}
 
                             {replies.length > 0 && (
-                                <div className="mt-6 space-y-4 border-l-2 border-white/5 ml-2 pl-6">
-                                    {displayedReplies.map((reply) => (
-                                        <CommentItem
-                                            key={reply.id}
-                                            comment={reply}
-                                            replies={reply.replies}
-                                            postAuthorId={postAuthorId}
-                                            onDelete={onDelete}
-                                            onUpdate={onUpdate}
-                                        />
-                                    ))}
+                                <div
+                                    className={`mt-6 space-y-4 border-white/10
+                                        ${depth < 1
+                                            ? `${isExtraNarrow ? "pl-2 ml-1" : "pl-4 md:pl-6 ml-3 md:ml-3"} border-l md:border-l-2`
+                                            : depth < 5
+                                                ? `${isExtraNarrow ? "pl-2 ml-0" : "pl-4 md:pl-6 ml-1 md:ml-2"} border-l md:border-l-2`
+                                                : "border-l-0 md:border-l-2 pl-0 md:pl-6 ml-0 md:ml-2"
+                                        }
+                                    `}
+                                >
+                                    {(!isMobile || depth < 2) ? (
+                                        <>
+                                            {displayedReplies.map((reply) => (
+                                                <CommentItem
+                                                    key={reply.id}
+                                                    comment={reply}
+                                                    replies={reply.replies}
+                                                    postAuthorId={postAuthorId}
+                                                    onDelete={onDelete}
+                                                    onUpdate={onUpdate}
+                                                    depth={depth + 1}
+                                                    onReadThread={onReadThread}
+                                                />
+                                            ))}
 
-                                    <div className="flex gap-3 items-center mt-4 pt-2">
-                                        {hasMoreReplies && (
+                                            <div className="flex gap-3 items-center mt-4 pt-2">
+                                                {hasMoreReplies && (
+                                                    <button
+                                                        onClick={() => {
+                                                            // On mobile, if depth is significant, open thread view
+                                                            if (isMobile && depth >= 1 && onReadThread) {
+                                                                onReadThread(comment);
+                                                            } else {
+                                                                setVisibleRepliesCount((prev) => prev + 5);
+                                                            }
+                                                        }}
+                                                        className="text-[11px] font-bold text-purple-400 hover:text-white transition-all cursor-pointer bg-purple-500/10 hover:bg-purple-500/20 px-4 py-2 rounded-lg border border-purple-500/20"
+                                                    >
+                                                        Read Thread (
+                                                        {replies.length - visibleRepliesCount} more)
+                                                    </button>
+                                                )}
+                                                {visibleRepliesCount > 5 && (
+                                                    <button
+                                                        onClick={() => { setVisibleRepliesCount(5); }}
+                                                        className="text-[11px] font-bold text-slate-400 hover:text-white transition-all cursor-pointer bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg border border-white/10"
+                                                    >
+                                                        Close Thread
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="pt-2">
                                             <button
-                                                onClick={() => { setVisibleRepliesCount((prev) => prev + 5); }
-                                                }
+                                                onClick={() => { onReadThread?.(comment); }}
                                                 className="text-[11px] font-bold text-purple-400 hover:text-white transition-all cursor-pointer bg-purple-500/10 hover:bg-purple-500/20 px-4 py-2 rounded-lg border border-purple-500/20"
                                             >
-                                                Read Thread (
-                                                {replies.length - visibleRepliesCount} more)
+                                                Read Thread ({replies.length} {replies.length === 1 ? 'reply' : 'replies'})
                                             </button>
-                                        )}
-                                        {visibleRepliesCount > 5 && (
-                                            <button
-                                                onClick={() => { setVisibleRepliesCount(5); }}
-                                                className="text-[11px] font-bold text-slate-400 hover:text-white transition-all cursor-pointer bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg border border-white/10"
-                                            >
-                                                Close Thread
-                                            </button>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

@@ -253,9 +253,9 @@ export function PostCard({ post, priority = false }: PostCardProps) {
 
           <div className="flex flex-col flex-1 p-5 min-h-0">
             {/* Title */}
-            <div className="mb-2">
+            <h3 className="text-xl font-bold tracking-tight text-slate-100 mb-2 leading-tight">
               {post.title ?? "Untitled Draft"}
-            </div>
+            </h3>
 
             {/* Content Preview */}
             <div className="mb-3 overflow-hidden mask-image-b min-h-0 relative">

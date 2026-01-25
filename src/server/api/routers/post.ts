@@ -273,6 +273,12 @@ export const postRouter = createTRPCRouter({
         }
       }
 
+      // Fetch existing post to get content for image cleanup
+      const existingPost = await ctx.db.query.posts.findFirst({
+        where: and(eq(posts.id, input.id), eq(posts.authorId, ctx.auth.userId)),
+        columns: { content: true }
+      });
+
       const [updatedPost] = await ctx.db
         .update(posts)
         .set(updateData)
@@ -281,6 +287,26 @@ export const postRouter = createTRPCRouter({
           eq(posts.authorId, ctx.auth.userId)
         ))
         .returning({ id: posts.id });
+
+      if (updatedPost) {
+        // Handle Image Deletion
+        if (existingPost?.content && input.content) {
+          const { extractImages } = await import("~/lib/post-utils");
+          const { utapi, getUploadthingKey } = await import("~/server/uploadthing");
+
+          const oldImages = extractImages(existingPost.content);
+          const newImages = extractImages(input.content);
+
+          const imagesToDelete = oldImages.filter(img => !newImages.includes(img));
+          const keysToDelete = imagesToDelete
+            .map(url => getUploadthingKey(url))
+            .filter((key): key is string => key !== null);
+
+          if (keysToDelete.length > 0) {
+            await utapi.deleteFiles(keysToDelete);
+          }
+        }
+      }
 
       if (updatedPost) {
         // Delete existing tags
