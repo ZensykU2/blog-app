@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
 import { users, followers } from "~/server/db/schema";
+import { createNotification } from "~/server/services/notification.service";
 
 export const userRouter = createTRPCRouter({
     getProfile: publicProcedure
@@ -75,10 +76,20 @@ export const userRouter = createTRPCRouter({
                 });
             }
 
-            await ctx.db.insert(followers).values({
+            const [newFollow] = await ctx.db.insert(followers).values({
                 followerId: ctx.auth.userId,
                 followingId: input.targetUserId,
-            }).onConflictDoNothing();
+            }).onConflictDoNothing().returning();
+
+            if (newFollow) {
+                await createNotification(ctx.db, {
+                    userId: input.targetUserId,
+                    type: "new_follower",
+                    title: "New Follower",
+                    message: "started following you",
+                    relatedUserId: ctx.auth.userId,
+                });
+            }
 
             return { success: true };
         }),

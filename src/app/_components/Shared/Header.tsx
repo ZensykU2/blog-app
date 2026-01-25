@@ -2,8 +2,9 @@
 
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
-import { UserMenu } from "./UserMenu";
 import { Button } from "./Button";
+import { UserMenu } from "./UserMenu";
+import { NotificationBell } from "../Notifications/NotificationBell";
 
 export function Header() {
     const { data: session, status } = useSession();
@@ -44,6 +45,7 @@ export function Header() {
                                         </button>
                                     </Link>
 
+                                    <NotificationBell />
                                     <UserMenu />
                                 </>
                             ) : (

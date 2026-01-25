@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { comments, posts, users, commentLikes } from "~/server/db/schema";
+import { createNotification, notifyMentions } from "~/server/services/notification.service";
 import { count } from "drizzle-orm";
 
 export const commentRouter = createTRPCRouter({
@@ -79,6 +80,66 @@ export const commentRouter = createTRPCRouter({
                     parentId: input.parentId,
                 })
                 .returning();
+
+            if (newComment) {
+                const post = await ctx.db.query.posts.findFirst({
+                    where: eq(posts.id, input.postId),
+                    columns: { authorId: true, title: true }
+                });
+
+                let notifiedPostAuthor = false;
+
+                // 1. Handle reply notification (priority)
+                if (input.parentId) {
+                    const parentComment = await ctx.db.query.comments.findFirst({
+                        where: eq(comments.id, input.parentId),
+                        columns: { authorId: true, content: true }
+                    });
+
+                    if (parentComment && parentComment.authorId !== ctx.auth.userId) {
+                        const parentSnippet = parentComment.content.length > 20
+                            ? parentComment.content.substring(0, 20) + "..."
+                            : parentComment.content;
+                        const replySnippet = input.content.length > 30
+                            ? input.content.substring(0, 30) + "..."
+                            : input.content;
+
+                        await createNotification(ctx.db, {
+                            userId: parentComment.authorId,
+                            type: "new_comment",
+                            title: "New Reply",
+                            message: `replied to "${parentSnippet}": ${replySnippet}`,
+                            relatedUserId: ctx.auth.userId,
+                            relatedPostId: input.postId,
+                            relatedCommentId: newComment.id,
+                        });
+
+                        if (parentComment.authorId === post?.authorId) {
+                            notifiedPostAuthor = true;
+                        }
+                    }
+                }
+
+                // 2. Handle post author notification (if not already notified as parent)
+                if (post && post.authorId !== ctx.auth.userId && !notifiedPostAuthor) {
+                    const commentSnippet = input.content.length > 30
+                        ? input.content.substring(0, 30) + "..."
+                        : input.content;
+
+                    await createNotification(ctx.db, {
+                        userId: post.authorId,
+                        type: "new_comment",
+                        title: "New Comment",
+                        message: `commented: "${commentSnippet}" on your post: ${post.title ?? 'Untitled'}`,
+                        relatedUserId: ctx.auth.userId,
+                        relatedPostId: input.postId,
+                        relatedCommentId: newComment.id,
+                    });
+                }
+
+                // 3. Handle mentions
+                await notifyMentions(ctx.db, input.content, input.postId, newComment.id, ctx.auth.userId);
+            }
 
             return newComment;
         }),

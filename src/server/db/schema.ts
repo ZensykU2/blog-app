@@ -27,6 +27,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "new_comment",
   "comment_like",
   "post_like",
+  "post_bookmark",
   "post_featured",
   "mention",
 ]);
@@ -463,3 +464,6 @@ export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;
+export type NotificationType = (typeof notificationTypeEnum.enumValues)[number];
